@@ -32,7 +32,7 @@ extern "C" void app_main(void) {
     M5.begin();
     M5.Display.init();
     M5.Display.setRotation(1);  // landscape 320x240
-    M5.Display.setBrightness(80);
+    M5.Display.setBrightness(60);
     ESP_LOGI(kTag, "step: display ready");
 
     // Start the USB console FIRST so the REPL is always available even if the
@@ -42,9 +42,9 @@ extern "C" void app_main(void) {
 
     // Prove TTL serial health before changing scanner policy. Configuration is
     // applied only after a valid firmware reply and every ACK-producing write
-    // must succeed before the UI claims AUTO readiness.
+    // must succeed before the UI claims configured KEY-mode readiness.
     char fw[64] = {0};
-    bool auto_ready = false;
+    bool configured_ready = false;
     if (g_qr.begin()) {
         bool responsive = false;
         for (int attempt = 1; attempt <= 3 && !responsive; ++attempt) {
@@ -62,21 +62,23 @@ extern "C" void app_main(void) {
             QRCodeM14::CmdResult pos =
                 g_qr.setPosLightMode(QRCodeM14::POS_ON_DECODE);
             QRCodeM14::CmdResult mode =
-                g_qr.setTriggerMode(QRCodeM14::AUTO);
-            auto_ready = uart == QRCodeM14::OK && fill == QRCodeM14::OK &&
-                         pos == QRCodeM14::OK && mode == QRCodeM14::OK;
+                g_qr.setTriggerMode(QRCodeM14::KEY);
+            configured_ready = uart == QRCodeM14::OK &&
+                               fill == QRCodeM14::OK &&
+                               pos == QRCodeM14::OK &&
+                               mode == QRCodeM14::OK;
             ESP_LOGI(kTag,
-                     "AUTO config: uart=%s fill=%s pos=%s mode=%s ready=%d",
+                     "KEY config: uart=%s fill=%s pos=%s mode=%s ready=%d",
                      QRCodeM14::resultName(uart),
                      QRCodeM14::resultName(fill),
                      QRCodeM14::resultName(pos),
-                     QRCodeM14::resultName(mode), auto_ready);
+                     QRCodeM14::resultName(mode), configured_ready);
         }
     } else {
         ESP_LOGE(kTag, "module init failed -- 12V power / DIP switch (UART) / stack");
     }
 
-    g_ui.start(g_qr, fw, auto_ready);  // UI owns M5.update() + display
+    g_ui.start(g_qr, fw, configured_ready);  // UI owns display + modes
     ESP_LOGI(kTag, "step: UI started");
 
     ESP_LOGI(kTag, "ready -- UI + console started");

@@ -36,10 +36,11 @@ idf.py -p /dev/ttyACM0 flash monitor
 ## Use
 
 - **On screen:** after a valid firmware reply, startup requests UART output,
-  decode lighting, and AUTO mode and requires every defined ACK before showing
-  AUTO ready. Decoded UART text appears in the center and recent codes scroll
-  in the history list. Tap anywhere for a 100 ms active-low hardware-trigger
-  fallback.
+  decode lighting, and thermally conservative KEY mode, requiring every
+  defined ACK before showing ready. Tap the **left half** for a 100 ms hardware
+  trigger. Tap the **right half** to cycle
+  `KEY -> AUTO -> CONT -> PULSE -> MOTION -> KEY`. Use AUTO/CONT only while
+  needed; KEY and PULSE avoid continuous acquisition.
 - **USB console** (`cores3-qr> `):
   ```
   qr status            # read module firmware + serial (the on-device probe)
@@ -66,7 +67,7 @@ Communication** programming barcode `21424000` from page 9 of
   `qrcode_m14.cpp`).
 - `main/qr_module.{h,cpp}` — PI4IOE5V6408 power/TRIG + UART1 + scan pump → queue.
 - `main/qr_console.{h,cpp}` — esp_console REPL over USB Serial/JTAG.
-- `main/qr_ui.{h,cpp}` — M5GFX display task (current code + history + buttons).
+- `main/qr_ui.{h,cpp}` — M5GFX display task (current code, history, trigger/mode touch zones).
 
 See the design guide:
 `ttmp/2026/08/23/ESP-62-CORES3-QRCODE--esp-idf-cores3-module13-2-qrcode-barcode-qr-scanner-with-on-screen-display-intern-guide/design-doc/01-...-guide.md`

@@ -39,6 +39,21 @@ static const char *mode_name(QRCodeM14::TriggerMode m) {
     }
 }
 
+static QRCodeM14::TriggerMode next_mode(QRCodeM14::TriggerMode mode) {
+    switch (mode) {
+        case QRCodeM14::KEY: return QRCodeM14::AUTO;
+        case QRCodeM14::AUTO: return QRCodeM14::CONTINUOUS;
+        case QRCodeM14::CONTINUOUS: return QRCodeM14::PULSE;
+        case QRCodeM14::PULSE: return QRCodeM14::MOTION;
+        default: return QRCodeM14::KEY;
+    }
+}
+
+static bool mode_scans_automatically(QRCodeM14::TriggerMode mode) {
+    return mode == QRCodeM14::AUTO || mode == QRCodeM14::CONTINUOUS ||
+           mode == QRCodeM14::MOTION;
+}
+
 static void draw(M5Canvas &c, const UIState &st) {
     c.clear(TFT_BLACK);
     // top bar
@@ -46,9 +61,9 @@ static void draw(M5Canvas &c, const UIState &st) {
     c.setTextColor(TFT_WHITE, TFT_NAVY);
     c.setFont(&fonts::Font2);
     c.setCursor(6, 8);
-    c.printf("QR HARDWARE TRIGGER  %s", mode_name(st.mode));
-    c.setCursor(c.width() - 72, 8);
-    c.print(st.scanning ? "[pulse]" : "[ready]");
+    c.printf("QR MODE: %s", mode_name(st.mode));
+    c.setCursor(c.width() - 76, 8);
+    c.print(st.scanning ? "[active]" : "[idle]");
     // firmware line
     c.setFont(&fonts::Font0);
     c.setTextColor(TFT_CYAN, TFT_BLACK);
@@ -88,10 +103,14 @@ static void draw(M5Canvas &c, const UIState &st) {
     }
 
     // footer
-    c.fillRect(0, c.height() - 14, c.width(), 14, TFT_DARKGREY);
+    c.fillRect(0, c.height() - 14, c.width() / 2, 14, TFT_DARKGREY);
+    c.fillRect(c.width() / 2, c.height() - 14, c.width() / 2, 14, TFT_LIGHTGREY);
     c.setTextColor(TFT_BLACK, TFT_DARKGREY);
     c.setCursor(4, c.height() - 11);
-    c.print("Tap anywhere: hardware trigger");
+    c.print("LEFT: trigger");
+    c.setTextColor(TFT_BLACK, TFT_LIGHTGREY);
+    c.setCursor(c.width() / 2 + 4, c.height() - 11);
+    c.print("RIGHT: next mode");
 }
 
 static void push_history(UIState &st, const char *code) {
@@ -113,16 +132,25 @@ static void ui_task(void *arg) {
 
     while (true) {
         M5.update();
-        // buttons
-        if (M5.Touch.getDetail().wasClicked() || M5.BtnA.wasClicked()) {
-            // Match the known-good 0119 probe exactly: any screen tap pulses
-            // the physical active-low TRIG line. Do not also send a scanner
-            // mode command from this diagnostic UI.
-            bool queued = st->module->requestHardwareTriggerPulse();
-            st->scanning = queued;
-            st->dirty = true;
-            ESP_LOGI(kTag, "hardware trigger pulse: %s",
-                     queued ? "queued" : "queue-full");
+        auto touch = M5.Touch.getDetail();
+        if (touch.wasClicked()) {
+            if (touch.x < M5.Display.width() / 2) {
+                bool queued = st->module->requestHardwareTriggerPulse();
+                if (queued) st->scanning = true;
+                st->dirty = true;
+                ESP_LOGI(kTag, "hardware trigger pulse: %s",
+                         queued ? "queued" : "queue-full");
+            } else {
+                QRCodeM14::TriggerMode requested = next_mode(st->mode);
+                bool queued = st->module->requestTriggerMode(requested);
+                if (queued) {
+                    st->mode = requested;
+                    st->scanning = mode_scans_automatically(requested);
+                }
+                st->dirty = true;
+                ESP_LOGI(kTag, "mode=%s: %s", mode_name(requested),
+                         queued ? "queued" : "queue-full");
+            }
         }
         // Drain scan results only when module initialization created the
         // queue. The UI remains usable and reports "no reply" without it.
@@ -132,7 +160,7 @@ static void ui_task(void *arg) {
             strncpy(st->last_code, r.text, sizeof(st->last_code) - 1);
             st->last_code[sizeof(st->last_code) - 1] = 0;
             push_history(*st, st->last_code);
-            st->scanning = false;
+            st->scanning = mode_scans_automatically(st->mode);
             st->dirty = true;
             ESP_LOGI(kTag, "code: %s", st->last_code);
         }
@@ -145,11 +173,12 @@ static void ui_task(void *arg) {
     }
 }
 
-void QRUI::start(QRModule &module, const char *firmware, bool auto_ready) {
+void QRUI::start(QRModule &module, const char *firmware,
+                 bool configured_ready) {
     static UIState st;
     st.module = &module;
-    st.scanning = auto_ready;
-    st.mode = auto_ready ? QRCodeM14::AUTO : QRCodeM14::KEY;
+    st.scanning = false;
+    st.mode = QRCodeM14::KEY;
     st.firmware[0] = 0;
     st.last_code[0] = 0;
     st.hist_count = 0;
@@ -158,7 +187,7 @@ void QRUI::start(QRModule &module, const char *firmware, bool auto_ready) {
         strncpy(st.firmware, firmware, sizeof(st.firmware) - 1);
         st.firmware[sizeof(st.firmware) - 1] = 0;
     }
-    ESP_LOGI(kTag, "start: firmware=%s auto_ready=%d, creating UI task",
-             st.firmware[0] ? st.firmware : "(no reply)", auto_ready);
+    ESP_LOGI(kTag, "start: firmware=%s configured_ready=%d, creating UI task",
+             st.firmware[0] ? st.firmware : "(no reply)", configured_ready);
     xTaskCreate(ui_task, "qr_ui", 6144, &st, 4, nullptr);
 }
