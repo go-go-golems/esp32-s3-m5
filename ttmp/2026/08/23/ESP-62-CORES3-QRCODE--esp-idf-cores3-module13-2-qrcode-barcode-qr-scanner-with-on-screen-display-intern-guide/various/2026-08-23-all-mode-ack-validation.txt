@@ -1,0 +1,39 @@
+===== auto =====
+                        |!aA.|
+I (95496) qr_engine: ack ok
+I (96561) qr_module: UART RX chunk: 10 bytes
+I (96561) qr_module: qr mode auto
+I (383116) qr_engine: tx 4 bytes
+I (383116) qr_engine: 0x3fcac830   21 61 41 02                                       |!aA.|
+I (383151) qr_engine: ack ok
+mode: ok
+cores3-qr>
+cores3-qr>  ===== cont =====
+qr mode cont
+I (388221) qr_engine: tx 4 bytes
+I (388221) qr_engine: 0x3fcac830   21 61 41 01                                       |!aA.|
+I (388373) qr_engine: ack ok
+mode: ok
+cores3-qr>
+cores3-qr>  ===== pulse =====
+qr mode pulse
+I (393353) qr_engine: tx 4 bytes
+I (393353) qr_engine: 0x3fcac830   21 61 41 04                                       |!aA.|
+I (393379) qr_engine: ack ok
+mode: ok
+cores3-qr>
+cores3-qr>  ===== sense =====
+qr mode sense
+I (398479) qr_engine: tx 4 bytes
+I (398479) qr_engine: 0x3fcac830   21 61 41 05                                       |!aA.|
+I (398510) qr_engine: ack ok
+mode: ok
+cores3-qr>
+cores3-qr>  ===== key =====
+qr mode key
+I (403580) qr_engine: tx 4 bytes
+I (403580) qr_engine: 0x3fcac830   21 61 41 00                                       |!aA.|
+I (403759) qr_engine: ack ok
+mode: ok
+cores3-qr>
+cores3-qr>

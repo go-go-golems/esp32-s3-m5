@@ -81,3 +81,18 @@ Step 16: added KEY-default touch mode cycling, 160 MHz CPU, and lower backlight;
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_ui.cpp — Left-trigger/right-mode-cycle UI
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/sdkconfig.defaults — 160 MHz thermal configuration
 
+
+## 2026-08-23
+
+Closure: flashed thermal-friendly 160 MHz KEY-default firmware, validated all five mode ACKs, printed QR size strip, and left Phase 5 NVS/image-preview work explicitly deferred
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_ui.cpp — Validated trigger/mode UI command model
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/sdkconfig.defaults — Validated 160 MHz default
+
+
+## 2026-08-23
+
+Ticket complete: scanner recovered to UART, stable owner-task firmware validated, AUTO and low-duty KEY modes proven, mode cycle ACKs passed, thermal defaults applied, report/diary/evidence finalized; Phase 5 enhancements deferred beyond ticket scope
+

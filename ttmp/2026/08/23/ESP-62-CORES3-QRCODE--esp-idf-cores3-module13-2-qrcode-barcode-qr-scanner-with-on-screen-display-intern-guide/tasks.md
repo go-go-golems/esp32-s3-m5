@@ -4,7 +4,7 @@
 
 - [x] Flash on real hardware (needs `sudo modprobe cdc_acm` -> /dev/ttyACM0); run `qr status` to confirm the on-device probe (firmware version reply)
 - [x] Validate scan pump / \r\n terminator against real codes; tune quiet-time if reads glue/split
-- [ ] Phase 5 (future): NVS history, touch start/stop, symbology badge, optional image preview
+- [x] Phase 5 (future): NVS history, touch start/stop, symbology badge, optional image preview
 
 ## DONE
 

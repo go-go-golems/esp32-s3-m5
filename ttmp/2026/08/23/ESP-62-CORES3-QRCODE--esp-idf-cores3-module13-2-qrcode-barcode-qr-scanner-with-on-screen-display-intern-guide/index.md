@@ -1,7 +1,7 @@
 ---
 Title: ESP-IDF CoreS3 + Module13.2 QRCode barcode/QR scanner with on-screen display (intern guide)
 Ticket: ESP-62-CORES3-QRCODE
-Status: active
+Status: complete
 Topics:
     - m5stack
     - cores3
@@ -19,10 +19,11 @@ Owners: []
 RelatedFiles: []
 ExternalSources: []
 Summary: ""
-LastUpdated: 2026-08-23T14:17:53.463399434-04:00
+LastUpdated: 2026-08-23T19:10:06.99824422-04:00
 WhatFor: ""
 WhenToUse: ""
 ---
+
 
 # ESP-IDF CoreS3 + Module13.2 QRCode barcode/QR scanner with on-screen display (intern guide)
 

@@ -1631,3 +1631,69 @@ the time.
   `various/2026-08-23-thermal-mode-cycle-build.txt`.
 - Failed flash:
   `various/2026-08-23-thermal-mode-cycle-flash-port-missing.txt`.
+
+### Reattach, mode validation, and QR print follow-up
+
+**User prompt (verbatim):** "ok we're back
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "print out a series of qr codes of varrying sizes on the almanach printer (see skill, command line help --all)
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "cool, let's close up the report and the ticket and the diary and push
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+After USB reattach, the stable by-id path returned as `/dev/ttyACM0` and
+`lsusb` again showed Espressif `303a:1001`. The previously committed image then
+flashed successfully.
+
+The reset capture proved the thermal configuration and low-duty startup:
+
+```text
+cpu freq: 160000000 Hz
+firmware query attempt 1/3: 1.0
+KEY config: uart=ok fill=ok pos=ok mode=ok ready=1
+qr_ui: start: firmware=1.0 configured_ready=1
+```
+
+No repeated `UART RX chunk`, `emit code`, or `qr_ui: code` appeared during the
+13-second KEY idle capture, even though the test code remained nearby. This is
+the intended contrast with AUTO's repeated acquisition.
+
+A final serial-owner test sent every mode represented by the touchscreen cycle:
+
+```text
+qr mode auto   -> ack ok, mode: ok
+qr mode cont   -> ack ok, mode: ok
+qr mode pulse  -> ack ok, mode: ok
+qr mode sense  -> ack ok, mode: ok
+qr mode key    -> ack ok, mode: ok
+```
+
+The test ended in KEY mode. No assertion, reboot, or watchdog appeared. This
+proves the engine command path used by the UI cycle. The right/left touch-zone
+geometry remains a direct visual interaction rather than an automated console
+claim.
+
+For physical scan-size testing, I authored and remotely printed a brutalist
+Almanach strip with 64, 80, 96, 112, 128, 144, and 160 px QR codes. Each code
+has a size-specific payload (`ALM-QR-064` through `ALM-QR-160`). Remote dry-run
+returned 384x1425, and final printing succeeded in two bitmap segments.
+
+**Commit (test artifact):** 6c451024 — "ESP-62: add printed QR size validation strip"
+
+Closure evidence:
+
+- Successful flash:
+  `various/2026-08-23-thermal-mode-cycle-flash-success.txt`.
+- 160 MHz KEY boot:
+  `various/2026-08-23-thermal-key-boot-validation.txt`.
+- All-mode ACK capture:
+  `various/2026-08-23-all-mode-ack-validation.txt`.
+- QR strip layout:
+  `various/2026-08-23-qr-size-test-strip.yaml`.
+- QR strip print result:
+  `various/2026-08-23-qr-size-test-strip-print-result.txt`.
