@@ -1495,3 +1495,139 @@ incident.
   `various/2026-08-23-final-auto-deduplicated-success.txt`.
 - Factory-reset refusal:
   `various/2026-08-23-factory-reset-guard.txt`.
+
+## Step 16: Add thermal-friendly mode cycling; pause for USB reattach
+
+The user asked to regain runtime mode selection and reduce heat from continuous
+acquisition. I changed the normal boot policy from AUTO to KEY, split the
+touchscreen into trigger and mode controls, reduced CoreS3 CPU frequency and
+LCD brightness, regenerated `sdkconfig`, and built successfully.
+
+The first flash did not reach the board. The stable Espressif USB by-id path,
+all `/dev/ttyACM*` devices, and the Espressif USB enumeration disappeared
+before esptool opened the port. No process owns the port because the device is
+absent. Hardware validation is paused pending an explicit USB reconnect or
+manual reset.
+
+### Prompt Context
+
+**User prompt (verbatim):** "ok, now make it so that we can cycle back through the different mode,s and make it so the chip doesn't get so goddamn hot (because I guess it's scanning all the time currently?)
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)
+
+But also I'm not sure if it's working / has been updated, it seems stuck ?
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Make scan modes selectable again, choose a
+low-duty default to reduce scanner heat, reduce avoidable CoreS3 power, commit
+incrementally, and document both implementation and hardware-validation
+failures.
+
+**Inferred user intent:** Preserve fast AUTO/continuous scanning when needed
+without leaving the imaging engine and host running at maximum activity all
+the time.
+
+**Commit (code):** 05461cba — "ESP-62: add thermal-friendly mode cycling UI"
+
+### What I did
+
+- Changed guarded startup from AUTO to KEY mode while retaining UART output,
+  fill-light-on-decode, and positioning-light-on-decode ACK validation.
+- Split the LCD horizontally: left touch requests a 100 ms hardware TRIG
+  pulse; right touch cycles `KEY -> AUTO -> CONT -> PULSE -> MOTION -> KEY`.
+- Updated the header to show current mode and active/idle state.
+- Lowered display brightness from 80 to 60.
+- Changed `sdkconfig.defaults` from 240 MHz to 160 MHz CPU frequency.
+- Removed `sdkconfig` and rebuilt so the defaults change actually took effect.
+- Verified generated configuration contains:
+
+  ```text
+  CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_160=y
+  CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=160
+  ```
+
+### Why
+
+- KEY mode keeps the scan engine idle until a physical trigger and is the
+  lowest-risk default for heat and power.
+- AUTO and CONT remain available through the UI for high-throughput scanning.
+- A 160 MHz ESP32-S3 is sufficient for UART, quiet-time framing, M5GFX redraws,
+  and the console; 240 MHz provided no measured requirement here.
+- Reduced backlight power lowers heat generated inside the CoreS3 enclosure.
+
+### What worked
+
+- The clean configuration rebuild succeeded with ESP-IDF 5.3.4.
+- The binary reports app version `05461cba` and fits the custom partition with
+  87% free.
+- The generated configuration proves the 160 MHz default was applied.
+- The code and README changes were committed before hardware validation.
+
+### What didn't work
+
+- Flash failed before opening the serial port:
+
+  ```text
+  A fatal error occurred: Could not open
+  /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_30:ED:A0:0B:0F:50-if00,
+  the port is busy or doesn't exist.
+  ([Errno 2] No such file or directory)
+  ```
+
+- Follow-up inspection found no `/dev/serial/by-id`, no `/dev/ttyACM*`, no
+  Espressif `303a` device in `lsusb`, and no stale monitor process. The new
+  firmware was therefore not flashed, and the board continued running—or
+  stopped running—the previous image independently of this change.
+
+### What I learned
+
+- The user's observation that the UI looked unchanged was accurate evidence:
+  the new image never reached hardware.
+- A flash failure after a successful build can be hidden by combined command
+  output unless esptool's fatal line is inspected explicitly.
+- Missing USB enumeration is different from serial ownership contention; no
+  process cleanup can repair an absent device.
+
+### What was tricky to build
+
+- Mode-specific UI state must distinguish automatic acquisition from a brief
+  hardware pulse. AUTO, CONT, and MOTION show active; KEY and PULSE remain idle
+  until triggered.
+- `sdkconfig.defaults` does not override an existing `sdkconfig`. Removing the
+  generated file was required to apply 160 MHz, exactly as documented in the
+  repository agent instructions.
+
+### What warrants a second pair of eyes
+
+- Validate actual enclosure temperature over several minutes in KEY versus
+  AUTO rather than assuming all heat came from scanner acquisition.
+- Confirm the right-half touch cycle ACKs each requested mode. The current UI
+  request is intentionally nonblocking and optimistically updates its label.
+- Consider owner-to-UI mode-result events if mode failures need visible error
+  reporting.
+
+### What should be done in the future
+
+- Reconnect/reset the CoreS3, flash `05461cba`, and capture KEY idle behavior.
+- Cycle through every mode from the touchscreen and verify owner ACK logs.
+- Compare raw scan activity and illumination between KEY, AUTO, and CONT.
+- Update the Obsidian report only after hardware validation completes.
+
+### Code review instructions
+
+- Review `app_main.cpp` for KEY startup and brightness 60.
+- Review `qr_ui.cpp` `next_mode()`, `mode_scans_automatically()`, and touch
+  coordinate split.
+- Review `sdkconfig.defaults` for the 160 MHz target.
+- After reattach, validate that boot logs show `KEY config ... ready=1`, no raw
+  scan repeats before trigger, and right-half touches enqueue each mode.
+
+### Technical details
+
+- Successful clean build:
+  `various/2026-08-23-thermal-mode-cycle-build.txt`.
+- Failed flash:
+  `various/2026-08-23-thermal-mode-cycle-flash-port-missing.txt`.

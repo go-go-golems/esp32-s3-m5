@@ -71,3 +71,13 @@ Step 15: restored ACK-backed AUTO + fill/position lights, added boot retries, co
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_engine.cpp — Mixed-stream ACK matching and observed UART-mode ACK
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_module.cpp — Continuous scan deduplication
 
+
+## 2026-08-23
+
+Step 16: added KEY-default touch mode cycling, 160 MHz CPU, and lower backlight; build passed but flash blocked because CoreS3 USB enumeration disappeared (commit 05461cba)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_ui.cpp — Left-trigger/right-mode-cycle UI
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/sdkconfig.defaults — 160 MHz thermal configuration
+
