@@ -22,6 +22,11 @@ bool QRModule::begin() {
         return false;
     }
     ESP_LOGI(kTag, "begin: expander OK");
+    // Preload valid levels while both channels are still high-impedance. TRIG
+    // is active-low, so it must already be high before output drive or scanner
+    // power is enabled. This is the ordering proven by the minimal 0119 probe.
+    _io_exp->digitalWrite(kChPowerEn, false);
+    _io_exp->digitalWrite(kChTrig, true);
     for (uint8_t ch : {kChPowerEn, kChTrig}) {
         _io_exp->setDirection(ch, true);
         _io_exp->setPullMode(ch, true);
@@ -58,8 +63,15 @@ bool QRModule::begin() {
 
 void QRModule::setEnable(bool en) {
     if (!_io_exp) return;
-    _io_exp->digitalWrite(kChPowerEn, en);
-    setTriggerLevel(en);
+    // Keep active-low TRIG idle-high across both power states. On power-up,
+    // establish TRIG first; on power-down, remove power first.
+    if (en) {
+        setTriggerLevel(true);
+        _io_exp->digitalWrite(kChPowerEn, true);
+    } else {
+        _io_exp->digitalWrite(kChPowerEn, false);
+        setTriggerLevel(true);
+    }
 }
 
 void QRModule::setTriggerLevel(bool high) {
