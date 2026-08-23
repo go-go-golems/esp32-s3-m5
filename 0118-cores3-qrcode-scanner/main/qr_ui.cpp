@@ -46,9 +46,9 @@ static void draw(M5Canvas &c, const UIState &st) {
     c.setTextColor(TFT_WHITE, TFT_NAVY);
     c.setFont(&fonts::Font2);
     c.setCursor(6, 8);
-    c.printf("QR %s  %s", st.scanning ? "SCAN" : "IDLE", mode_name(st.mode));
-    c.setCursor(c.width() - 90, 8);
-    c.print(st.scanning ? "[on]   " : "[off]  ");
+    c.printf("QR HARDWARE TRIGGER  %s", mode_name(st.mode));
+    c.setCursor(c.width() - 72, 8);
+    c.print(st.scanning ? "[pulse]" : "[ready]");
     // firmware line
     c.setFont(&fonts::Font0);
     c.setTextColor(TFT_CYAN, TFT_BLACK);
@@ -85,7 +85,7 @@ static void draw(M5Canvas &c, const UIState &st) {
     c.fillRect(0, c.height() - 14, c.width(), 14, TFT_DARKGREY);
     c.setTextColor(TFT_BLACK, TFT_DARKGREY);
     c.setCursor(4, c.height() - 11);
-    c.print("BtnA: scan  BtnB: mode");
+    c.print("BtnA: hardware trigger  BtnB: mode");
 }
 
 static void push_history(UIState &st, const char *code) {
@@ -109,12 +109,13 @@ static void ui_task(void *arg) {
         M5.update();
         // buttons
         if (M5.BtnA.wasClicked()) {
-            bool requested = !st->scanning;
-            bool queued = requested ? st->module->requestStartScan()
-                                    : st->module->requestStopScan();
-            if (queued) st->scanning = requested;
+            // Match the known-good 0119 probe: pulse the physical active-low
+            // TRIG line instead of relying on the currently silent UART
+            // start-decode command.
+            bool queued = st->module->requestHardwareTriggerPulse();
+            st->scanning = queued;
             st->dirty = true;
-            ESP_LOGI(kTag, "scan %s: %s", requested ? "start" : "stop",
+            ESP_LOGI(kTag, "hardware trigger pulse: %s",
                      queued ? "queued" : "queue-full");
         }
         if (M5.BtnB.wasClicked()) {
@@ -136,6 +137,7 @@ static void ui_task(void *arg) {
             strncpy(st->last_code, r.text, sizeof(st->last_code) - 1);
             st->last_code[sizeof(st->last_code) - 1] = 0;
             push_history(*st, st->last_code);
+            st->scanning = false;
             st->dirty = true;
             ESP_LOGI(kTag, "code: %s", st->last_code);
         }

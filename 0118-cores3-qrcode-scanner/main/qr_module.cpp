@@ -134,6 +134,9 @@ bool QRModule::requestStartScan() {
 bool QRModule::requestStopScan() {
     return enqueue(QRReqType::StopDecode);
 }
+bool QRModule::requestHardwareTriggerPulse() {
+    return enqueue(QRReqType::PulseTrigger);
+}
 bool QRModule::requestTriggerMode(QRCodeM14::TriggerMode m) {
     return enqueue(QRReqType::SetTriggerMode, (uint8_t)m);
 }

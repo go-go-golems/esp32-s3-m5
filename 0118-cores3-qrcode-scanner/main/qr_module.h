@@ -84,6 +84,7 @@ class QRModule {
     QRCodeM14::CmdResult stopScan();
     bool requestStartScan();
     bool requestStopScan();
+    bool requestHardwareTriggerPulse();
     bool requestTriggerMode(QRCodeM14::TriggerMode m);
     bool getInfo(uint8_t id, char *out, size_t cap);
     bool rawCommand(const uint8_t *cmd, size_t cmd_len, uint8_t *out,
