@@ -440,6 +440,10 @@ void QRModule::ownerTask(void *arg) {
             self->handle(request);
         }
         int n = self->_engine.readBytes(buf, sizeof(buf), 30);
+        if (n > 0) {
+            ESP_LOGI(kTag, "UART RX chunk: %d bytes", n);
+            ESP_LOG_BUFFER_HEXDUMP(kTag, buf, n, ESP_LOG_INFO);
+        }
         self->pump(n > 0 ? buf : nullptr, n);
     }
 }
