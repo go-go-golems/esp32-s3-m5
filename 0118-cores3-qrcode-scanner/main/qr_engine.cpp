@@ -51,6 +51,19 @@ QRCodeM14::CmdResult QRCodeM14::configureHostBaud(int baud) {
     return OK;
 }
 
+QRCodeM14::CmdResult QRCodeM14::configureHostPins(int tx, int rx) {
+    if (_port == UART_NUM_MAX || tx < 0 || rx < 0) return INVALID;
+    esp_err_t err = uart_set_pin(_port, tx, rx, UART_PIN_NO_CHANGE,
+                                 UART_PIN_NO_CHANGE);
+    if (err != ESP_OK) {
+        ESP_LOGE(kTag, "set host UART pins tx=%d rx=%d failed: %s", tx, rx,
+                 esp_err_to_name(err));
+        return INVALID;
+    }
+    ESP_LOGI(kTag, "host UART pins tx=%d rx=%d", tx, rx);
+    return OK;
+}
+
 QRCodeM14::CmdResult QRCodeM14::sendCmd(const uint8_t *cmd, size_t n,
                                          const uint8_t *ack, size_t ack_len,
                                          uint32_t timeout_ms) {

@@ -34,6 +34,7 @@ static void print_usage(void) {
     printf("  qr trig <low|high|pulse> # drive hardware TRIG via expander ch4\n");
     printf("  qr lines             # read power/TRIG outputs and G14 RX level\n");
     printf("  qr baud-probe        # probe documented scanner UART baud rates\n");
+    printf("  qr route-probe       # probe safe QRCode DIP UART routes\n");
     printf("  qr reset             # factory reset (use with care)\n");
 }
 
@@ -146,6 +147,15 @@ static int cmd_qr(int argc, char **argv) {
             return 1;
         }
         printf("baud-probe: %s\n", found);
+        return 0;
+    }
+    if (!strcmp(sub, "route-probe")) {
+        char found[64] = {0};
+        if (!s_module->probeRoutes(found, sizeof(found))) {
+            printf("route-probe: no response; restored G13/G14\n");
+            return 1;
+        }
+        printf("route-probe: %s\n", found);
         return 0;
     }
     if (!strcmp(sub, "mode")) {

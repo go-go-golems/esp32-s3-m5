@@ -218,6 +218,17 @@ bool QRModule::probeBauds(char *out, size_t cap) {
     return true;
 }
 
+bool QRModule::probeRoutes(char *out, size_t cap) {
+    if (!out || cap == 0) return false;
+    QRRequest request{};
+    request.type = QRReqType::ProbeRoutes;
+    QRResponse response{};
+    if (!transact(request, &response) || !response.ok) return false;
+    std::strncpy(out, response.info, cap - 1);
+    out[cap - 1] = 0;
+    return true;
+}
+
 void QRModule::emit(const char *text) {
     if (!_result_q || !text || !text[0]) return;
     ScanResult result{};
@@ -364,6 +375,35 @@ void QRModule::handle(const QRRequest &request) {
                 _engine.configureHostBaud(115200);
                 std::snprintf(response.info, sizeof(response.info),
                               "no response; restored baud=115200");
+                response.cmd_result = QRCodeM14::TIMEOUT;
+            }
+            break;
+        }
+        case QRReqType::ProbeRoutes: {
+            struct Route { int tx; int rx; const char *name; };
+            // Known QRCode DIP pairs. G6/G7 is omitted because those are H2
+            // control lines unless the H2 disconnect state is re-verified.
+            static const Route routes[] = {
+                {13, 14, "G13/G14-pins23/26"},
+                {17, 18, "G17/G18-pins16/15"},
+                {43, 44, "G43/G44-pins14/13"},
+            };
+            _engine.configureHostBaud(115200);
+            char fw[32] = {0};
+            for (const auto &route : routes) {
+                if (_engine.configureHostPins(route.tx, route.rx) != QRCodeM14::OK) continue;
+                vTaskDelay(pdMS_TO_TICKS(50));
+                if (_engine.getInfos(0xC1, fw, sizeof(fw))) {
+                    std::snprintf(response.info, sizeof(response.info),
+                                  "%s firmware=%s", route.name, fw);
+                    response.cmd_result = QRCodeM14::OK;
+                    break;
+                }
+            }
+            if (response.cmd_result != QRCodeM14::OK) {
+                _engine.configureHostPins(kUartTx, kUartRx);
+                std::snprintf(response.info, sizeof(response.info),
+                              "no route; restored G13/G14");
                 response.cmd_result = QRCodeM14::TIMEOUT;
             }
             break;

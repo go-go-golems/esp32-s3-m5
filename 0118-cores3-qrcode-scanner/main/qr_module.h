@@ -43,6 +43,7 @@ enum class QRReqType : uint8_t {
     PulseTrigger,
     GetElectricalState,
     ProbeBauds,
+    ProbeRoutes,
 };
 
 // Queue payloads contain only owned values and FreeRTOS object handles.
@@ -100,6 +101,7 @@ class QRModule {
     QRCodeM14::CmdResult pulseHardwareTrigger();
     bool getElectricalState(char *out, size_t cap);
     bool probeBauds(char *out, size_t cap);
+    bool probeRoutes(char *out, size_t cap);
 
     QueueHandle_t resultQueue() const { return _result_q; }
 
