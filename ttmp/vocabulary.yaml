@@ -253,6 +253,14 @@ topics:
       description: ISO/IEC 14443 Type A contactless card protocol and anticollision
     - slug: component-architecture
       description: Architecture and packaging of reusable software components and their public integration boundaries
+    - slug: barcode
+      description: 1D barcode symbologies and scanning (EAN/UPC/Code128/etc.)
+    - slug: qr-code
+      description: 2D QR / Data Matrix / PDF417 code scanning
+    - slug: module13.2-qrcode
+      description: M5Stack Module13.2 QRCode scanner expansion (SKU M145, M14-Pro engine)
+    - slug: m5unified
+      description: M5Unified Arduino library used on ESP-IDF via managed components
 docTypes:
     - slug: index
       description: Ticket index document

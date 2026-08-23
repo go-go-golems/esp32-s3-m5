@@ -1,0 +1,226 @@
+Module13.2 QRCode
+SKU:M145
+
+
+
+
+                    1/7 | Update Time: 2026-08-05
+  Description
+Module13.2 QRCode is a 1D/2D barcode scanning module from the M5Stack stacking module series. It integrates a CMOS barcode capture engine
+with a resolution of 640 x 480, supporting 3 mainstream 2D code types and 14 1D code types on the market, enabling fast and accurate recognition of
+barcodes printed on media such as paper and labels. A toggle switch allows switching between USB and UART communication interfaces for the QR
+module to communicate with external devices. The USB interface can be configured in three modes: USB virtual serial port, USB HID keyboard, and
+USB HID-POS. The module features a built-in buzzer for audio prompts, illumination and aiming LEDs, provides rich secondary development interfaces,
+and supports multiple scanning trigger modes (e.g., auto mode, continuous mode, motion sensing mode, pulse mode) for customized functionality and
+integrated development. It integrates a DC power input interface supporting DC 9 ~ 24V. Through the internal DC-DC step-down circuit it powers the
+entire device, making it suitable for logistics and warehousing, retail checkout, ticketing systems, production traceability, medical information collection,
+self-service terminals, and many other scenarios.
+
+
+
+  Features
+    Supports 3 types of 2D codes and 14 types of 1D codes
+    Built-in USB and UART interface switching switch
+    Built-in buzzer sound prompt
+    Built-in illumination LED
+    High-resolution imaging
+    Focusing and aiming function
+    Multiple scanning trigger modes, such as auto and continuous modes
+    DC power supply interface, wide voltage input: DC 9 ~ 24V
+    Development Platform:
+        Arduino
+        UiFlow2
+
+
+
+
+                                                                                                                                    2/7 | Update Time: 2026-08-05
+Includes
+  1 x Module13.2 QRCode
+
+
+
+Applications
+  Logistics and warehousing
+  Retail checkout
+  Ticketing systems
+  Production traceability
+  Medical information collection
+  Self-service terminals
+
+
+
+Specifications
+
+Specification               Parameter
+
+IO Expansion Chip           PI4IOE5V6408 I2C@0x43
+
+Sensor                      640 x 480 CMOS
+
+Illumination                White LED
+
+Aiming                      Red LED
+
+Supported 2D Codes          PDF417, QR Code, Data Matrix
+
+                            Code11, Code39, Code93, Code128, EAN-13, EAN-8, UPC-A, UPC-E,
+Supported 1D Codes
+                            Codabar, Interleaved 2 of 5, Matrix 2 of 5, Industrial 2 of 5, MSI, GS1 Databar
+
+Depth of Field              50 ~ 160 mm
+
+Reading Accuracy            ≥ 5 mil
+
+Print Contrast              ≥ 20 %
+
+Scan Angle                  Pitch ±55°, Skew ±55°
+
+Communication
+                            USB or UART communication; the USB interface can be connected to a PC via a Grove to USB-C accessory
+Interface
+
+Expansion Interface         3 Grove ports: PORT.A, PORT.B, PORT.C
+
+DC Power Input
+                            Input voltage: DC 9 ~ 24V, spec: 5.5 x 2.1 mm, polarity: center positive, outer negative
+Interface
+
+Operating Current           DC 5V module off 5.04V@74.42 mA, on 5.09V@255.84 mA DC 9V module off 9.09V@98.93 mA, on 9.10V@153.44
+(with Core2)                mA DC 12V module off 10.49V@79.96 mA, on 10.38V@124.54 mA
+
+Product Size                54.0 x 54.0 x 19.7 mm
+
+Product Weight              22.9 g
+
+Package Size                138.0 x 93.5 x 22.5 mm
+
+Gross Weight                38.8 g
+
+
+
+
+Schematics
+  Module13.2 QRCode Schematics PDF
+
+
+
+
+                                                                                                                       3/7 | Update Time: 2026-08-05
+ PinMap
+
+IO Expansion Chip
+
+ PI4IOE5V6408                                          P0                                               P4
+
+ QR Module                                             QR_5V_EN                                         TRIG
+
+
+
+M5-Bus
+         Switch
+
+
+  Pins marked SW in the M5-Bus below can be switched via DIP switches to adapt to different host devices; switching to NC disconnects that
+
+  pin.
+
+
+
+
+                                                                                                                        4/7 | Update Time: 2026-08-05
+ PIN                             LEFT           RIGHT   PIN
+
+ GND                             1              2
+
+ GND                             3              4       PORT.B
+
+ GND                             5              6
+
+                                 7              8
+
+                                 9              10      PORT.B
+
+                                 11             12
+
+ QR_TX / NC (SW)                 13             14      QR_RX / NC (SW)
+
+ QR_TX / PORT.C_UART_RX (SW)     15             16      QR_RX / PORT.C_UART_TX (SW)
+
+ I2C_SDA                         17             18      I2C_SCL
+
+                                 19             20
+
+ QR_RX / NC (SW)                 21             22      QR_TX / NC (SW)
+
+ QR_RX / NC (SW)                 23             24
+
+ HPWR                            25             26      QR_TX / NC (SW)
+
+ HPWR                            27             28      5V
+
+ HPWR                            29             30
+
+
+
+HY2.0-4P
+
+ HY2.0-4P   Black       Red           Yellow                  White
+
+ PORT.A     GND         5V            I2C_SDA                 I2C_SCL
+
+ PORT.B     GND         5V            OUT                     IN
+
+                                      UART_TX/QR_USB_DP+      UART_RX/QR_USB_DM-
+ PORT.C     GND         5V
+                                      (SW)                    (SW)
+
+
+
+
+ Model Size
+  Module13.2 QRCode Model Size PDF
+
+
+
+
+                                                                                      5/7 | Update Time: 2026-08-05
+ Datasheets
+  QRCode Module Datasheet
+
+
+
+ Softwares
+
+Arduino
+  Module13.2 QRCode Arduino Quick Start
+  Module13.2 QRCode Arduino Test Program
+
+
+UiFlow2
+  Module13.2 QRCode UiFlow2 Docs
+
+
+Protocol
+  Module13.2 QRCode Control Commands
+  Module13.2 QRCode Scanner User Manual
+  USB HID-POS Upper Computer
+
+
+Configuration Tool
+  CodeBarConfigTool-5.8.5
+
+
+
+
+                                           6/7 | Update Time: 2026-08-05
+ Video
+   Module13.2 QRCode product introduction and demo
+
+M145_Module13.2_QRCode_video.mp4
+
+
+
+
+                                                     7/7 | Update Time: 2026-08-05
+
