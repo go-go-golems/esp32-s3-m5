@@ -34,7 +34,10 @@ bool QRModule::begin() {
         _io_exp->setHighImpedance(ch, false);
     }
     setEnable(true);
-    vTaskDelay(pdMS_TO_TICKS(300));
+    // The engine can accept hardware triggers before its command parser is
+    // ready. Match the proven minimal probe and allow a full second before
+    // installing/querying UART.
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
     _engine.begin(kUart, kUartTx, kUartRx, 115200);
 

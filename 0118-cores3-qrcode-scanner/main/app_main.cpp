@@ -46,7 +46,13 @@ extern "C" void app_main(void) {
     char fw[64] = {0};
     bool auto_ready = false;
     if (g_qr.begin()) {
-        bool responsive = g_qr.getInfo(0xC1, fw, sizeof(fw));
+        bool responsive = false;
+        for (int attempt = 1; attempt <= 3 && !responsive; ++attempt) {
+            responsive = g_qr.getInfo(0xC1, fw, sizeof(fw));
+            ESP_LOGI(kTag, "firmware query attempt %d/3: %s", attempt,
+                     responsive ? fw : "no reply");
+            if (!responsive && attempt < 3) vTaskDelay(pdMS_TO_TICKS(500));
+        }
         ESP_LOGI(kTag, "module ready, firmware=%s",
                  responsive ? fw : "(no reply)");
         if (responsive) {
