@@ -29,26 +29,53 @@ void QRCodeM14::begin(uart_port_t port, int tx, int rx, int baud) {
     ESP_LOGI(kTag, "uart%d @ %d 8N1 tx=%d rx=%d", port, baud, tx, rx);
 }
 
+const char *QRCodeM14::resultName(CmdResult result) {
+    switch (result) {
+        case OK: return "ok";
+        case INVALID: return "invalid";
+        case TIMEOUT: return "timeout";
+        case ACK_MISMATCH: return "ack-mismatch";
+        default: return "unknown";
+    }
+}
+
 QRCodeM14::CmdResult QRCodeM14::sendCmd(const uint8_t *cmd, size_t n,
                                          const uint8_t *ack, size_t ack_len,
                                          uint32_t timeout_ms) {
-    if (!cmd || n == 0) return INVALID;
-    uart_flush_input(_port);  // "clear rx buffer"
-    uart_write_bytes(_port, cmd, n);
-    if (!ack || ack_len == 0) return OK;  // no reply expected
+    if (!cmd || n == 0 || _port == UART_NUM_MAX || ack_len > 16) return INVALID;
+    ESP_LOGI(kTag, "tx %u bytes", (unsigned)n);
+    ESP_LOG_BUFFER_HEXDUMP(kTag, cmd, n, ESP_LOG_INFO);
+    uart_flush_input(_port);
+    int written = uart_write_bytes(_port, cmd, n);
+    if (written != (int)n) {
+        ESP_LOGE(kTag, "uart write failed: wanted=%u wrote=%d", (unsigned)n, written);
+        return INVALID;
+    }
+    if (!ack || ack_len == 0) return OK;
 
-    uint8_t rx[16];
+    uint8_t rx[16] = {0};
     size_t got = 0;
     int64_t deadline = esp_timer_get_time() + (int64_t)timeout_ms * 1000;
-    while (esp_timer_get_time() < deadline) {
-        int len = uart_read_bytes(_port, rx + got, ack_len - got, pdMS_TO_TICKS(5));
-        if (len > 0) {
-            got += len;
-            if (got >= ack_len) break;
-        }
+    while (esp_timer_get_time() < deadline && got < ack_len) {
+        int len = uart_read_bytes(_port, rx + got, ack_len - got,
+                                  pdMS_TO_TICKS(5));
+        if (len > 0) got += len;
     }
-    if (got < ack_len) return TIMEOUT;
-    return (memcmp(rx, ack, ack_len) == 0) ? OK : ACK_MISMATCH;
+    if (got < ack_len) {
+        ESP_LOGW(kTag, "ack timeout: got=%u expected=%u", (unsigned)got,
+                 (unsigned)ack_len);
+        if (got) ESP_LOG_BUFFER_HEXDUMP(kTag, rx, got, ESP_LOG_WARN);
+        return TIMEOUT;
+    }
+    if (memcmp(rx, ack, ack_len) != 0) {
+        ESP_LOGW(kTag, "ack mismatch; received:");
+        ESP_LOG_BUFFER_HEXDUMP(kTag, rx, got, ESP_LOG_WARN);
+        ESP_LOGW(kTag, "expected:");
+        ESP_LOG_BUFFER_HEXDUMP(kTag, ack, ack_len, ESP_LOG_WARN);
+        return ACK_MISMATCH;
+    }
+    ESP_LOGI(kTag, "ack ok");
+    return OK;
 }
 
 bool QRCodeM14::getInfos(uint8_t id, char *out, size_t out_cap) {
@@ -81,68 +108,68 @@ bool QRCodeM14::getInfos(uint8_t id, char *out, size_t out_cap) {
     return true;
 }
 
-void QRCodeM14::startDecode() {
+QRCodeM14::CmdResult QRCodeM14::startDecode() {
     static const uint8_t cmd[] = {0x32, 0x75, 0x01};
-    sendCmd(cmd, sizeof(cmd));
+    return sendCmd(cmd, sizeof(cmd));
 }
 
-void QRCodeM14::stopDecode() {
+QRCodeM14::CmdResult QRCodeM14::stopDecode() {
     static const uint8_t cmd[] = {0x32, 0x75, 0x02};
     static const uint8_t ack[] = {0x33, 0x75, 0x02, 0x00, 0x00};
-    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 150);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 150);
 }
 
-void QRCodeM14::setTriggerMode(TriggerMode m) {
+QRCodeM14::CmdResult QRCodeM14::setTriggerMode(TriggerMode m) {
     uint8_t cmd[] = {0x21, 0x61, 0x41, (uint8_t)m};
     uint8_t ack[] = {0x22, 0x61, 0x41, (uint8_t)m, 0x00};
-    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
 }
 
-void QRCodeM14::setFillLightMode(FillLightMode m) {
+QRCodeM14::CmdResult QRCodeM14::setFillLightMode(FillLightMode m) {
     uint8_t cmd[] = {0x21, 0x62, 0x41, (uint8_t)m};
     uint8_t ack[] = {0x22, 0x62, 0x41, (uint8_t)m, 0x00};
-    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 200);
 }
 
-void QRCodeM14::setPosLightMode(PosLightMode m) {
+QRCodeM14::CmdResult QRCodeM14::setPosLightMode(PosLightMode m) {
     uint8_t cmd[] = {0x21, 0x62, 0x42, (uint8_t)m};
     uint8_t ack[] = {0x22, 0x62, 0x42, (uint8_t)m, 0x00};
-    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 100);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 100);
 }
 
-void QRCodeM14::setModeUart() {
+QRCodeM14::CmdResult QRCodeM14::setModeUart() {
     static const uint8_t cmd[] = {0x21, 0x42, 0x40, 0x00};
-    sendCmd(cmd, sizeof(cmd));
+    return sendCmd(cmd, sizeof(cmd));
 }
 
-void QRCodeM14::enableSuffixCrLf() {
-    // suffix enable on: 21 51 4C 01
+QRCodeM14::CmdResult QRCodeM14::enableSuffixCrLf() {
     static const uint8_t en[] = {0x21, 0x51, 0x4C, 0x01};
-    static const uint8_t en_ack[] = {0x22, 0x51, 0x4C, 0x01};
-    sendCmd(en, sizeof(en), en_ack, sizeof(en_ack), 200);
-    // suffix content = \r\n: 21 51 C2 00 02 0D 0A  (len=2 then bytes)
+    static const uint8_t en_ack[] = {0x22, 0x51, 0x4C, 0x01, 0x00};
+    CmdResult result = sendCmd(en, sizeof(en), en_ack, sizeof(en_ack), 200);
+    if (result != OK) return result;
+
     static const uint8_t suf[] = {0x21, 0x51, 0xC2, 0x00, 0x02, 0x0D, 0x0A};
     static const uint8_t suf_ack[] = {0x22, 0x51, 0xC2, 0x00, 0x00};
-    sendCmd(suf, sizeof(suf), suf_ack, sizeof(suf_ack), 200);
+    return sendCmd(suf, sizeof(suf), suf_ack, sizeof(suf_ack), 200);
 }
 
-void QRCodeM14::setFillLightBrightness(int pct) {
+QRCodeM14::CmdResult QRCodeM14::setFillLightBrightness(int pct) {
     if (pct < 0) pct = 0;
     if (pct > 100) pct = 100;
     uint8_t cmd[] = {0x21, 0x62, 0x48, (uint8_t)pct};
     uint8_t ack[] = {0x22, 0x62, 0x48, (uint8_t)pct, 0x00};
-    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 100);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 100);
 }
 
-void QRCodeM14::setDecodeSuccessBeep(int count) {
+QRCodeM14::CmdResult QRCodeM14::setDecodeSuccessBeep(int count) {
     uint8_t cmd[] = {0x21, 0x63, 0x42, (uint8_t)count};
     uint8_t ack[] = {0x22, 0x63, 0x42, (uint8_t)count};
-    sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 150);
+    return sendCmd(cmd, sizeof(cmd), ack, sizeof(ack), 150);
 }
 
-void QRCodeM14::factoryReset() {
+QRCodeM14::CmdResult QRCodeM14::factoryReset() {
     static const uint8_t cmd[] = {0x32, 0x76, 0x01};
-    sendCmd(cmd, sizeof(cmd));
+    return sendCmd(cmd, sizeof(cmd));
 }
 
 int QRCodeM14::available() {

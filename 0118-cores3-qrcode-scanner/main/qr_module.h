@@ -38,6 +38,9 @@ enum class QRReqType : uint8_t {
     FactoryReset,
     SetModeUart,
     EnableSuffixCrLf,
+    PowerCycle,
+    SetTriggerLevel,
+    PulseTrigger,
 };
 
 // Queue payloads contain only owned values and FreeRTOS object handles.
@@ -53,6 +56,7 @@ struct QRRequest {
 
 struct QRResponse {
     bool ok = false;
+    QRCodeM14::CmdResult cmd_result = QRCodeM14::INVALID;
     char info[64] = {0};
     uint8_t raw[128] = {0};
     size_t raw_len = 0;
@@ -70,22 +74,23 @@ class QRModule {
 
     bool begin();
     bool ready() const { return _ready; }
-    void setEnable(bool en);
-    void setTriggerLevel(bool high);
-    void startScan();
-    void stopScan();
 
+    QRCodeM14::CmdResult startScan();
+    QRCodeM14::CmdResult stopScan();
     bool getInfo(uint8_t id, char *out, size_t cap);
     bool rawCommand(const uint8_t *cmd, size_t cmd_len, uint8_t *out,
                     size_t out_cap, size_t *out_len);
-    void setTriggerMode(QRCodeM14::TriggerMode m);
-    void setFillLightMode(QRCodeM14::FillLightMode m);
-    void setPosLightMode(QRCodeM14::PosLightMode m);
-    void setBrightness(int pct);
-    void setBeep(int count);
-    void factoryReset();
-    void setModeUart();
-    void enableSuffixCrLf();
+    QRCodeM14::CmdResult setTriggerMode(QRCodeM14::TriggerMode m);
+    QRCodeM14::CmdResult setFillLightMode(QRCodeM14::FillLightMode m);
+    QRCodeM14::CmdResult setPosLightMode(QRCodeM14::PosLightMode m);
+    QRCodeM14::CmdResult setBrightness(int pct);
+    QRCodeM14::CmdResult setBeep(int count);
+    QRCodeM14::CmdResult factoryReset();
+    QRCodeM14::CmdResult setModeUart();
+    QRCodeM14::CmdResult enableSuffixCrLf();
+    QRCodeM14::CmdResult powerCycle();
+    QRCodeM14::CmdResult setHardwareTrigger(bool high);
+    QRCodeM14::CmdResult pulseHardwareTrigger();
 
     QueueHandle_t resultQueue() const { return _result_q; }
 
@@ -100,7 +105,9 @@ class QRModule {
     size_t _len = 0;
     int64_t _last_rx_us = 0;
 
-    bool enqueue(QRReqType type, uint8_t arg = 0);
+    void setEnable(bool en);
+    void setTriggerLevel(bool high);
+    QRCodeM14::CmdResult command(QRReqType type, uint8_t arg = 0);
     bool transact(QRRequest &request, QRResponse *response);
     void pump(const uint8_t *data, int n);
     void emit(const char *text);

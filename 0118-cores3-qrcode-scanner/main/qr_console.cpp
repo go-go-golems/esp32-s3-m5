@@ -28,7 +28,18 @@ static void print_usage(void) {
     printf("  qr light <off|decode|on>\n");
     printf("  qr brightness <0-100>\n");
     printf("  qr beep <on|off>\n");
+    printf("  qr uart              # request RS232/UART output mode\n");
+    printf("  qr suffix            # enable CRLF scan suffix\n");
+    printf("  qr power-cycle       # cycle scanner power via expander ch0\n");
+    printf("  qr trig <low|high|pulse> # drive hardware TRIG via expander ch4\n");
     printf("  qr reset             # factory reset (use with care)\n");
+}
+
+static int print_result(const char *operation, QRCodeM14::CmdResult result,
+                        bool no_ack = false) {
+    printf("%s: %s%s\n", operation, QRCodeM14::resultName(result),
+           no_ack && result == QRCodeM14::OK ? " (write accepted; no ACK defined)" : "");
+    return result == QRCodeM14::OK ? 0 : 1;
 }
 
 static int parse_mode(const char *s, QRCodeM14::TriggerMode *out) {
@@ -85,16 +96,43 @@ static int cmd_qr(int argc, char **argv) {
         printf("\n");
         return 0;
     }
-    if (!strcmp(sub, "start")) { s_module->startScan(); printf("started\n"); return 0; }
-    if (!strcmp(sub, "stop")) { s_module->stopScan(); printf("stopped\n"); return 0; }
-    if (!strcmp(sub, "reset")) { s_module->factoryReset(); printf("factory reset sent\n"); return 0; }
+    if (!strcmp(sub, "start")) {
+        return print_result("start", s_module->startScan(), true);
+    }
+    if (!strcmp(sub, "stop")) {
+        return print_result("stop", s_module->stopScan());
+    }
+    if (!strcmp(sub, "reset")) {
+        return print_result("factory-reset", s_module->factoryReset(), true);
+    }
+    if (!strcmp(sub, "uart")) {
+        return print_result("uart-mode", s_module->setModeUart(), true);
+    }
+    if (!strcmp(sub, "suffix")) {
+        return print_result("suffix-crlf", s_module->enableSuffixCrLf());
+    }
+    if (!strcmp(sub, "power-cycle")) {
+        return print_result("power-cycle", s_module->powerCycle());
+    }
+    if (!strcmp(sub, "trig")) {
+        if (argc < 3) { printf("qr trig needs <low|high|pulse>\n"); return 1; }
+        if (!strcmp(argv[2], "low")) {
+            return print_result("trig-low", s_module->setHardwareTrigger(false));
+        }
+        if (!strcmp(argv[2], "high")) {
+            return print_result("trig-high", s_module->setHardwareTrigger(true));
+        }
+        if (!strcmp(argv[2], "pulse")) {
+            return print_result("trig-pulse", s_module->pulseHardwareTrigger());
+        }
+        printf("bad trigger action: %s\n", argv[2]);
+        return 1;
+    }
     if (!strcmp(sub, "mode")) {
         if (argc < 3) { printf("qr mode needs <key|cont|auto|pulse|sense>\n"); return 1; }
         QRCodeM14::TriggerMode m;
         if (parse_mode(argv[2], &m) != 0) { printf("bad mode: %s\n", argv[2]); return 1; }
-        s_module->setTriggerMode(m);
-        printf("mode set\n");
-        return 0;
+        return print_result("mode", s_module->setTriggerMode(m));
     }
     if (!strcmp(sub, "light")) {
         if (argc < 3) { printf("qr light needs <off|decode|on>\n"); return 1; }
@@ -103,22 +141,16 @@ static int cmd_qr(int argc, char **argv) {
         else if (!strcmp(argv[2], "decode")) m = QRCodeM14::FILL_ON_DECODE;
         else if (!strcmp(argv[2], "on")) m = QRCodeM14::FILL_ON;
         else { printf("bad light: %s\n", argv[2]); return 1; }
-        s_module->setFillLightMode(m);
-        printf("light set\n");
-        return 0;
+        return print_result("light", s_module->setFillLightMode(m));
     }
     if (!strcmp(sub, "brightness")) {
         if (argc < 3) { printf("qr brightness needs <0-100>\n"); return 1; }
         int v = atoi(argv[2]);
-        s_module->setBrightness(v);
-        printf("brightness=%d\n", v);
-        return 0;
+        return print_result("brightness", s_module->setBrightness(v));
     }
     if (!strcmp(sub, "beep")) {
         if (argc < 3) { printf("qr beep needs <on|off>\n"); return 1; }
-        s_module->setBeep(!strcmp(argv[2], "on") ? 1 : 0);
-        printf("beep set\n");
-        return 0;
+        return print_result("beep", s_module->setBeep(!strcmp(argv[2], "on") ? 1 : 0));
     }
     printf("unknown subcommand: %s\n", sub);
     print_usage();

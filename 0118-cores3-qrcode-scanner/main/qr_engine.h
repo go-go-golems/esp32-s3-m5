@@ -24,9 +24,11 @@ class QRCodeM14 {
     enum FillLightMode { FILL_OFF = 0, FILL_ON_DECODE = 2, FILL_ON = 3 };
     enum PosLightMode { POS_OFF = 0, POS_FLASH_DECODE = 1, POS_ON_DECODE = 2 };
 
-    // Open the UART at 115200 8N1. Pins are fixed by the CoreS3 Port-C wiring
-    // (TX=G17 -> QR_RX, RX=G18 <- QR_TX).
+    // Open the UART at 115200 8N1. This firmware routes the stacked scanner
+    // on G13/G14 to avoid the Gateway H2's fixed G18 connection.
     void begin(uart_port_t port, int tx, int rx, int baud = 115200);
+
+    static const char *resultName(CmdResult result);
 
     // Send a framed command; optionally match an ACK byte sequence.
     CmdResult sendCmd(const uint8_t *cmd, size_t n, const uint8_t *ack = nullptr,
@@ -37,17 +39,18 @@ class QRCodeM14 {
     // to out. Returns false on timeout/parse error.
     bool getInfos(uint8_t id, char *out, size_t out_cap);
 
-    // Control + config helpers (exact bytes from qrcode_m14.cpp).
-    void startDecode();            // 32 75 01 (no reply)
-    void stopDecode();             // 32 75 02 -> 33 75 02 00 00
-    void setTriggerMode(TriggerMode m);      // 21 61 41 <m>
-    void setFillLightMode(FillLightMode m);  // 21 62 41 <m>
-    void setPosLightMode(PosLightMode m);    // 21 62 42 <m>
-    void setModeUart();             // 21 42 40 00 (force RS232/UART output)
-    void enableSuffixCrLf();       // 21 51 4C 01 (suffix on) + 21 51 C2 00 02 0D 0A (\r\n)
-    void setFillLightBrightness(int pct);  // 21 62 48 <0..100>
-    void setDecodeSuccessBeep(int count);  // 21 63 42 <count>
-    void factoryReset();           // 32 76 01
+    // Control + config helpers (exact bytes from qrcode_m14.cpp). Return the
+    // transport/ACK result so callers never confuse "queued" with "applied".
+    CmdResult startDecode();            // 32 75 01 (no reply)
+    CmdResult stopDecode();             // 32 75 02 -> 33 75 02 00 00
+    CmdResult setTriggerMode(TriggerMode m);      // 21 61 41 <m>
+    CmdResult setFillLightMode(FillLightMode m);  // 21 62 41 <m>
+    CmdResult setPosLightMode(PosLightMode m);    // 21 62 42 <m>
+    CmdResult setModeUart();             // 21 42 40 00 (force RS232/UART output)
+    CmdResult enableSuffixCrLf();       // suffix enable + suffix bytes
+    CmdResult setFillLightBrightness(int pct);  // 21 62 48 <0..100>
+    CmdResult setDecodeSuccessBeep(int count);  // 21 63 42 <count>
+    CmdResult factoryReset();           // 32 76 01 (no reply defined)
 
     // Bytes currently available to read from the UART (for the scan pump).
     int available();

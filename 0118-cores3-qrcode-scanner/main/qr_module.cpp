@@ -64,19 +64,13 @@ void QRModule::setTriggerLevel(bool high) {
     if (_io_exp) _io_exp->digitalWrite(kChTrig, high);
 }
 
-bool QRModule::enqueue(QRReqType type, uint8_t arg) {
-    if (!_ready || !_req_q) {
-        ESP_LOGW(kTag, "reject request type=%d: module not ready", (int)type);
-        return false;
-    }
+QRCodeM14::CmdResult QRModule::command(QRReqType type, uint8_t arg) {
     QRRequest request{};
     request.type = type;
     request.arg_u8 = arg;
-    if (xQueueSend(_req_q, &request, pdMS_TO_TICKS(100)) != pdTRUE) {
-        ESP_LOGW(kTag, "request queue full: type=%d", (int)type);
-        return false;
-    }
-    return true;
+    QRResponse response{};
+    if (!transact(request, &response)) return QRCodeM14::INVALID;
+    return response.cmd_result;
 }
 
 bool QRModule::transact(QRRequest &request, QRResponse *response) {
@@ -102,8 +96,12 @@ bool QRModule::transact(QRRequest &request, QRResponse *response) {
     return sent && received;
 }
 
-void QRModule::startScan() { enqueue(QRReqType::StartDecode); }
-void QRModule::stopScan() { enqueue(QRReqType::StopDecode); }
+QRCodeM14::CmdResult QRModule::startScan() {
+    return command(QRReqType::StartDecode);
+}
+QRCodeM14::CmdResult QRModule::stopScan() {
+    return command(QRReqType::StopDecode);
+}
 
 bool QRModule::getInfo(uint8_t id, char *out, size_t cap) {
     if (!out || cap == 0) return false;
@@ -140,24 +138,40 @@ bool QRModule::rawCommand(const uint8_t *cmd, size_t cmd_len, uint8_t *out,
     return true;
 }
 
-void QRModule::setTriggerMode(QRCodeM14::TriggerMode m) {
-    enqueue(QRReqType::SetTriggerMode, (uint8_t)m);
+QRCodeM14::CmdResult QRModule::setTriggerMode(QRCodeM14::TriggerMode m) {
+    return command(QRReqType::SetTriggerMode, (uint8_t)m);
 }
-void QRModule::setFillLightMode(QRCodeM14::FillLightMode m) {
-    enqueue(QRReqType::SetFillLight, (uint8_t)m);
+QRCodeM14::CmdResult QRModule::setFillLightMode(QRCodeM14::FillLightMode m) {
+    return command(QRReqType::SetFillLight, (uint8_t)m);
 }
-void QRModule::setPosLightMode(QRCodeM14::PosLightMode m) {
-    enqueue(QRReqType::SetPosLight, (uint8_t)m);
+QRCodeM14::CmdResult QRModule::setPosLightMode(QRCodeM14::PosLightMode m) {
+    return command(QRReqType::SetPosLight, (uint8_t)m);
 }
-void QRModule::setBrightness(int pct) {
-    enqueue(QRReqType::SetBrightness, (uint8_t)std::clamp(pct, 0, 100));
+QRCodeM14::CmdResult QRModule::setBrightness(int pct) {
+    return command(QRReqType::SetBrightness,
+                   (uint8_t)std::clamp(pct, 0, 100));
 }
-void QRModule::setBeep(int count) {
-    enqueue(QRReqType::SetBeep, (uint8_t)std::max(count, 0));
+QRCodeM14::CmdResult QRModule::setBeep(int count) {
+    return command(QRReqType::SetBeep, (uint8_t)std::max(count, 0));
 }
-void QRModule::factoryReset() { enqueue(QRReqType::FactoryReset); }
-void QRModule::setModeUart() { enqueue(QRReqType::SetModeUart); }
-void QRModule::enableSuffixCrLf() { enqueue(QRReqType::EnableSuffixCrLf); }
+QRCodeM14::CmdResult QRModule::factoryReset() {
+    return command(QRReqType::FactoryReset);
+}
+QRCodeM14::CmdResult QRModule::setModeUart() {
+    return command(QRReqType::SetModeUart);
+}
+QRCodeM14::CmdResult QRModule::enableSuffixCrLf() {
+    return command(QRReqType::EnableSuffixCrLf);
+}
+QRCodeM14::CmdResult QRModule::powerCycle() {
+    return command(QRReqType::PowerCycle);
+}
+QRCodeM14::CmdResult QRModule::setHardwareTrigger(bool high) {
+    return command(QRReqType::SetTriggerLevel, high ? 1 : 0);
+}
+QRCodeM14::CmdResult QRModule::pulseHardwareTrigger() {
+    return command(QRReqType::PulseTrigger);
+}
 
 void QRModule::emit(const char *text) {
     if (!_result_q || !text || !text[0]) return;
@@ -204,39 +218,80 @@ void QRModule::handle(const QRRequest &request) {
         case QRReqType::GetInfo:
             response.ok = _engine.getInfos(request.arg_u8, response.info,
                                            sizeof(response.info));
+            response.cmd_result = response.ok ? QRCodeM14::OK : QRCodeM14::TIMEOUT;
             break;
         case QRReqType::RawCommand: {
-            _engine.sendCmd(request.raw_cmd, request.raw_len, nullptr, 0, 0);
-            int got = _engine.readBytes(response.raw, sizeof(response.raw), 800);
-            response.raw_len = got > 0 ? (size_t)got : 0;
-            response.ok = got >= 0;
+            response.cmd_result = _engine.sendCmd(
+                request.raw_cmd, request.raw_len, nullptr, 0, 0);
+            if (response.cmd_result == QRCodeM14::OK) {
+                int got = _engine.readBytes(response.raw, sizeof(response.raw), 800);
+                response.raw_len = got > 0 ? (size_t)got : 0;
+                response.ok = got >= 0;
+            }
             break;
         }
-        case QRReqType::StartDecode: _engine.startDecode(); break;
-        case QRReqType::StopDecode: _engine.stopDecode(); break;
+        case QRReqType::StartDecode:
+            response.cmd_result = _engine.startDecode();
+            break;
+        case QRReqType::StopDecode:
+            response.cmd_result = _engine.stopDecode();
+            break;
         case QRReqType::SetTriggerMode:
-            _engine.setTriggerMode((QRCodeM14::TriggerMode)request.arg_u8);
+            response.cmd_result = _engine.setTriggerMode(
+                (QRCodeM14::TriggerMode)request.arg_u8);
             break;
         case QRReqType::SetFillLight:
-            _engine.setFillLightMode((QRCodeM14::FillLightMode)request.arg_u8);
+            response.cmd_result = _engine.setFillLightMode(
+                (QRCodeM14::FillLightMode)request.arg_u8);
             break;
         case QRReqType::SetPosLight:
-            _engine.setPosLightMode((QRCodeM14::PosLightMode)request.arg_u8);
+            response.cmd_result = _engine.setPosLightMode(
+                (QRCodeM14::PosLightMode)request.arg_u8);
             break;
         case QRReqType::SetBrightness:
-            _engine.setFillLightBrightness(request.arg_u8);
+            response.cmd_result = _engine.setFillLightBrightness(request.arg_u8);
             break;
         case QRReqType::SetBeep:
-            _engine.setDecodeSuccessBeep(request.arg_u8);
+            response.cmd_result = _engine.setDecodeSuccessBeep(request.arg_u8);
             break;
-        case QRReqType::FactoryReset: _engine.factoryReset(); break;
-        case QRReqType::SetModeUart: _engine.setModeUart(); break;
-        case QRReqType::EnableSuffixCrLf: _engine.enableSuffixCrLf(); break;
+        case QRReqType::FactoryReset:
+            response.cmd_result = _engine.factoryReset();
+            break;
+        case QRReqType::SetModeUart:
+            response.cmd_result = _engine.setModeUart();
+            break;
+        case QRReqType::EnableSuffixCrLf:
+            response.cmd_result = _engine.enableSuffixCrLf();
+            break;
+        case QRReqType::PowerCycle:
+            ESP_LOGI(kTag, "scanner power cycle: off");
+            setEnable(false);
+            uart_flush_input(kUart);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            ESP_LOGI(kTag, "scanner power cycle: on, TRIG idle high");
+            setEnable(true);
+            vTaskDelay(pdMS_TO_TICKS(1200));
+            uart_flush_input(kUart);
+            _len = 0;
+            _last_rx_us = 0;
+            response.cmd_result = QRCodeM14::OK;
+            break;
+        case QRReqType::SetTriggerLevel:
+            setTriggerLevel(request.arg_u8 != 0);
+            ESP_LOGI(kTag, "TRIG=%s", request.arg_u8 ? "HIGH" : "LOW");
+            response.cmd_result = QRCodeM14::OK;
+            break;
+        case QRReqType::PulseTrigger:
+            ESP_LOGI(kTag, "TRIG pulse: LOW 100ms -> HIGH");
+            setTriggerLevel(false);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            setTriggerLevel(true);
+            response.cmd_result = QRCodeM14::OK;
+            break;
     }
+    if (response.cmd_result == QRCodeM14::OK) response.ok = true;
 
     if (request.reply_queue) {
-        // The synchronous caller owns this queue and waits until this response
-        // arrives before deleting it.
         xQueueSend(request.reply_queue, &response, portMAX_DELAY);
     }
 }

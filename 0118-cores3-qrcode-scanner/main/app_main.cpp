@@ -40,20 +40,18 @@ extern "C" void app_main(void) {
     g_console.start(g_qr);
     ESP_LOGI(kTag, "step: console started");
 
+    // Diagnostic startup is intentionally minimal: enable power, initialize
+    // UART, and issue one firmware query. Scanner configuration is operator-
+    // driven through the console so every command's ACK result is observable.
+    char fw[64] = {0};
     if (g_qr.begin()) {
-        char fw[64] = {0};
         bool ok = g_qr.getInfo(0xC1, fw, sizeof(fw));
         ESP_LOGI(kTag, "module ready, firmware=%s", ok ? fw : "(no reply)");
-        g_qr.setFillLightMode(QRCodeM14::FILL_ON_DECODE);
-        g_qr.setPosLightMode(QRCodeM14::POS_ON_DECODE);
-        g_qr.setTriggerMode(QRCodeM14::CONTINUOUS);
-        g_qr.setModeUart();       // force decoded output to RS232/UART (via owner task)
-        g_qr.enableSuffixCrLf();  // try to enable \r\n terminator (via owner task)
     } else {
         ESP_LOGE(kTag, "module init failed -- 12V power / DIP switch (UART) / stack");
     }
 
-    g_ui.start(g_qr);       // UI task owns M5.update() + display
+    g_ui.start(g_qr, fw);   // UI task owns M5.update() + display
     ESP_LOGI(kTag, "step: UI started");
 
     ESP_LOGI(kTag, "ready -- UI + console started");

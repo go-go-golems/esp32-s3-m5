@@ -10,5 +10,7 @@ class QRModule;
 
 class QRUI {
    public:
-    void start(QRModule &module);
+    // Firmware was queried once during minimal startup; the UI must not issue
+    // a second scanner transaction while boot diagnostics are in progress.
+    void start(QRModule &module, const char *firmware);
 };

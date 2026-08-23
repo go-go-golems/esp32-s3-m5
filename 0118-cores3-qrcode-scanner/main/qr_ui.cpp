@@ -109,20 +109,24 @@ static void ui_task(void *arg) {
         M5.update();
         // buttons
         if (M5.BtnA.wasClicked()) {
-            st->scanning = !st->scanning;
-            if (st->scanning) st->module->startScan();
-            else st->module->stopScan();
+            bool requested = !st->scanning;
+            QRCodeM14::CmdResult result = requested
+                ? st->module->startScan() : st->module->stopScan();
+            if (result == QRCodeM14::OK) st->scanning = requested;
             st->dirty = true;
-            ESP_LOGI(kTag, "scan %s", st->scanning ? "start" : "stop");
+            ESP_LOGI(kTag, "scan %s: %s", requested ? "start" : "stop",
+                     QRCodeM14::resultName(result));
         }
         if (M5.BtnB.wasClicked()) {
             // cycle: KEY -> CONTINUOUS -> AUTO -> PULSE -> MOTION -> KEY
             int m = st->mode;
             do { m = (m + 1) % 6; } while (m == 3);  // 3 unused
-            st->mode = (QRCodeM14::TriggerMode)m;
-            st->module->setTriggerMode(st->mode);
+            QRCodeM14::TriggerMode requested = (QRCodeM14::TriggerMode)m;
+            QRCodeM14::CmdResult result = st->module->setTriggerMode(requested);
+            if (result == QRCodeM14::OK) st->mode = requested;
             st->dirty = true;
-            ESP_LOGI(kTag, "mode=%s", mode_name(st->mode));
+            ESP_LOGI(kTag, "mode=%s: %s", mode_name(requested),
+                     QRCodeM14::resultName(result));
         }
         // Drain scan results only when module initialization created the
         // queue. The UI remains usable and reports "no reply" without it.
@@ -144,22 +148,18 @@ static void ui_task(void *arg) {
     }
 }
 
-void QRUI::start(QRModule &module) {
-    ESP_LOGI(kTag, "start: entering (will read firmware)");
+void QRUI::start(QRModule &module, const char *firmware) {
     static UIState st;
     st.module = &module;
     st.scanning = false;
-    st.mode = QRCodeM14::CONTINUOUS;
+    st.mode = QRCodeM14::KEY;
     st.firmware[0] = 0;
     st.last_code[0] = 0;
     st.hist_count = 0;
     st.dirty = true;
-    // read firmware once for the top bar
-    if (!module.ready() ||
-        !module.getInfo(0xC1, st.firmware, sizeof(st.firmware))) {
-        strncpy(st.firmware, "(no reply)", sizeof(st.firmware) - 1);
-        st.firmware[sizeof(st.firmware) - 1] = 0;
-    }
+    strncpy(st.firmware, firmware && firmware[0] ? firmware : "(no reply)",
+            sizeof(st.firmware) - 1);
+    st.firmware[sizeof(st.firmware) - 1] = 0;
     ESP_LOGI(kTag, "start: firmware=%s, creating UI task", st.firmware);
     xTaskCreate(ui_task, "qr_ui", 6144, &st, 4, nullptr);
 }
