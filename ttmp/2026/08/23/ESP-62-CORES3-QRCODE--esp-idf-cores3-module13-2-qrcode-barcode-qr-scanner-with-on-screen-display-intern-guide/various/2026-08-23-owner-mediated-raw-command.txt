@@ -1,0 +1,4 @@
+qr raw 43 02 C1
+rx 0 bytes:
+cores3-qr>  
+cores3-qr>  

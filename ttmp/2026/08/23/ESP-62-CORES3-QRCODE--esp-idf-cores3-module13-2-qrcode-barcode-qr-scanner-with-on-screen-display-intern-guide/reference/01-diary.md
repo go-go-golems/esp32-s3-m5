@@ -539,3 +539,158 @@ semantics bug worth recording for the blog.
   setModeUart/enableSuffixCrLf through owner; UI starts).
 - Working config: 3-layer CoreS3 + QRCode + H2 (H2 DIPs all off), QR on
   G13(TX)/G14(RX), firmware UART1 TX=13 RX=14.
+
+## Step 11: Stop the crashloop by fixing request/reply ownership
+
+The pointer-based response mechanism from Step 10 was not a valid fix. It
+made successful replies visible, but it also queued pointers to caller-owned
+stack storage and a semaphore whose lifetime ended on timeout. The resulting
+use-after-free caused the observed deterministic reboot loop shortly after
+the UI started.
+
+This step replaces that mechanism rather than adding guards around the
+symptom. Requests and responses now cross FreeRTOS queues by value, every
+synchronous call owns a dedicated reply queue, and all scanner UART access—including
+the raw console command—runs in the one owner task.
+
+### Prompt Context
+
+**User prompt (verbatim):** "Ok, we are stopping this nonsense our little brother is doing, bless his heart, but he is not able to properly deal with freertos queues and threads. Figure out what is going on here and fix it.
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Audit the FreeRTOS task/queue design from first principles, identify the exact crash mechanism, remove unsafe ownership patterns, and prove the repair on hardware.
+
+**Inferred user intent:** Recover a stable firmware baseline with understandable ownership rules, rather than continuing incremental patches around concurrency symptoms.
+
+**Commit (code):** 38df1be2 — "ESP-62: replace unsafe semaphore responses with value reply queues"
+
+### What I did
+
+- Captured the crashloop and preserved the exact failure:
+  `assert failed: xQueueGenericSend queue.c:937 (!( ( pvItemToQueue == ((void *)0) ) && ( pxQueue->uxItemSize != ( UBaseType_t ) 0U ) ))`.
+- Counted three `Calling app_main` occurrences in a 14-second capture, proving
+  repeated reboot rather than a frozen UI.
+- Decoded the backtrace with
+  `xtensa-esp32s3-elf-addr2line -pfiaC -e build/cores3_qrcode_scanner.elf ...`.
+  The failing path was `QRModule::ownerTask` -> `QRModule::handle` ->
+  `xSemaphoreGive(r.resp_sem)`.
+- Reconstructed the lifetime race: `getInfo()` queued `resp_out`,
+  `resp_ok_flag`, and `resp_sem`; its 1500 ms wait expired; it deleted the
+  semaphore and returned (also invalidating stack pointers); the owner later
+  completed the queued request and gave the deleted semaphore.
+- Replaced pointer/semaphore responses with `QRResponse` values sent through a
+  per-transaction one-element reply queue. A synchronous caller waits for the
+  internally bounded owner operation, receives the value, then deletes its
+  reply queue. No queued request points into a caller stack.
+- Removed public `engine()`, `pausePump()`, and `resumePump()` escape hatches.
+  Added an owner-mediated `RawCommand` request so `qr raw` cannot race the UART
+  pump.
+- Added queue/task allocation checks, queue-full diagnostics, a module-ready
+  guard, and a UI result-queue guard for failed module initialization.
+- Corrected quiet-time framing: the owner now calls `pump()` after idle UART
+  reads, allowing a one-shot code to emit after 30 ms without requiring a
+  later packet.
+- Built with ESP-IDF 5.3.4, flashed via the stable USB by-id path, and captured
+  hardware evidence under `various/`.
+
+### Why
+
+- A FreeRTOS queue copies a request's bytes; it does not extend the lifetime of
+  objects referenced by pointers inside those bytes.
+- A timeout cannot safely delete a completion object while the worker may
+  still use it. Null checks do not repair that ownership violation.
+- The scanner protocol operations already have bounded UART reads, so waiting
+  for the owner response is both simple and lifetime-safe.
+
+### What worked
+
+- `idf.py build` completed under ESP-IDF 5.3.4.
+- A 28-second post-flash boot capture contained exactly one `Calling app_main`
+  and zero assertions, backtraces, reboots, aborts, or watchdog reports.
+- The UI reached `step: UI started` and `ready -- UI + console started`.
+- The formerly fatal second firmware query safely returned `(no reply)` after
+  approximately 1.8 seconds.
+- `qr status` completed two sequential synchronous queries without a crash.
+- Owner-mediated `qr raw 43 02 C1` returned `rx 0 bytes`, and a subsequent
+  `qr start` returned `started`, proving the owner remained responsive.
+
+### What didn't work
+
+- The first attempted response fix from Step 10 used caller pointers plus a
+  semaphore. It solved queue-copy visibility but introduced use-after-free.
+- Temporary `_req_q`/`_result_q` null guards did not address the assertion and
+  were removed. The handles were valid; the completion semaphore was stale.
+- The scanner did not answer firmware/raw queries during this validation, so
+  the capture proves concurrency stability but not a new post-refactor decode.
+  Earlier hardware captures already proved the G13/G14 scan path and barcode
+  `X0052L3WPN`.
+
+### What I learned
+
+- The 1500 ms timeout was invalid even before queue delay: `getInfos()` can use
+  up to 800 ms for the header and another 800 ms for payload. Configuration
+  requests queued ahead of the UI query made expiry even more likely.
+- `xSemaphoreGive()` is implemented using queue internals. Calling it on a
+  deleted handle can surface as an `xQueueGenericSend` assertion, which makes
+  the crash look like a null queue item unless the backtrace and object
+  lifetime are examined together.
+- Value messages plus explicit reply-queue ownership are much easier to audit
+  than queued pointers to stack state.
+
+### What was tricky to build
+
+- The assertion complained about a null item pointer even though every visible
+  `xQueueSend` passed `&request` or `&result`. The hidden send was
+  `xSemaphoreGive()`. The underlying cause only became clear after decoding
+  the owner-task backtrace and aligning it with the timeout/delete sequence.
+- A bounded caller timeout and safe cleanup are incompatible unless ownership
+  is transferred to a heap object/reference-counted transaction or the worker
+  acknowledges cancellation. Here the simpler invariant is stronger: owner
+  operations are internally bounded, and the caller keeps the reply queue
+  alive until the response arrives.
+
+### What warrants a second pair of eyes
+
+- Review the invariant that every operation executed by `handle()` remains
+  bounded. If a future command can wait indefinitely, `transact()` needs an
+  owner-managed cancellation/lifetime protocol rather than a caller timeout.
+- The response queue is dynamically allocated per `getInfo`/`rawCommand`.
+  Query volume is tiny, but a static pool would avoid heap churn if status
+  polling is added later.
+- Validate the 30 ms framing threshold with long barcodes and fragmented UART
+  delivery.
+
+### What should be done in the future
+
+- Restore scanner response/power state and perform one fresh post-refactor
+  visual scan validation on the LCD.
+- Add a small transaction-lifetime test harness or fault-injection mode that
+  delays owner handling beyond old timeout thresholds.
+- Deduplicate repeated continuous-mode scans before adding them to UI history.
+
+### Code review instructions
+
+- Begin at `0118-cores3-qrcode-scanner/main/qr_module.h`: inspect
+  `QRRequest`, `QRResponse`, and the absence of caller-owned response pointers.
+- Continue in `qr_module.cpp`: inspect `transact()`, `handle()`, and
+  `ownerTask()`, then verify that the reply queue is deleted only after
+  `xQueueReceive()` succeeds.
+- Inspect `qr_console.cpp` to confirm `qr raw` uses `rawCommand()` and never
+  accesses `QRCodeM14` directly.
+- Validate with:
+  `source ~/esp/esp-idf-5.3.4/export.sh && idf.py build`, flash via the USB
+  by-id device, then capture at least 20 seconds and search for
+  `assert failed|Guru Meditation|Backtrace:|Rebooting|watchdog`.
+
+### Technical details
+
+- Clean boot evidence:
+  `various/2026-08-23-queue-lifetime-fix-28s-clean-boot.txt`.
+- Synchronous query evidence:
+  `various/2026-08-23-queue-lifetime-fix-status.txt`.
+- Raw-owner evidence:
+  `various/2026-08-23-owner-mediated-raw-command.txt` and
+  `various/2026-08-23-post-raw-start-command.txt`.
+- Stable port:
+  `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_30:ED:A0:0B:0F:50-if00`.
