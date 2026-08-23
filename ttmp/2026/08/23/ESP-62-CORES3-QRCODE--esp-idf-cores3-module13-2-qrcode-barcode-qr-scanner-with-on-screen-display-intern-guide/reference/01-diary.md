@@ -694,3 +694,173 @@ the raw console command—runs in the one owner task.
   `various/2026-08-23-post-raw-start-command.txt`.
 - Stable port:
   `/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_30:ED:A0:0B:0F:50-if00`.
+
+## Step 12: Isolate the no-scan failure below the protocol layer
+
+The crashloop was fixed, but the scanner still powered briefly and then
+stopped showing optical activity. This step removed the opaque startup command
+sequence, made every ACK-producing command observable, and tested power,
+trigger, baud, and UART routing independently.
+
+The result is narrower than “AUTO mode does not work.” The CoreS3 currently
+receives zero bytes from the scanner on every tested command, baud rate, and
+safe QRCode DIP route. The problem is now at the physical UART/interface
+boundary rather than in scan framing, UI delivery, or trigger-mode parsing.
+
+### Prompt Context
+
+**User prompt (verbatim):** "but now the qr code module doesn't seem to scan. It powers up but after that it's off, even when I enable AUTO mode and such
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "ok let's figure out the scanning issue
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**User prompt (verbatim):** "so it cycled, i tried pressing on the UI but it seems frozen now?
+
+[REMINDER] Output a <summary>...</summary> block at the VERY END of your response. This is mandatory."
+
+**Assistant interpretation:** Diagnose the scanner's failure to remain active
+and decode; do not regress the fixed FreeRTOS ownership design; also prevent
+long scanner diagnostics from blocking the UI task.
+
+**Inferred user intent:** Recover actual barcode scanning on the physical
+CoreS3 + QRCode + H2 stack, with enough instrumentation to identify the first
+failing electrical or protocol boundary.
+
+**Commit (code):** 66ed582d — "ESP-62: add observable scanner diagnostics and minimal startup"
+
+**Commit (code):** 8604fd71 — "ESP-62: add electrical-state and baud-sweep diagnostics"
+
+**Commit (code):** 6e28274c — "ESP-62: keep UI nonblocking during scanner diagnostics"
+
+**Commit (code):** 888a0f66 — "ESP-62: add safe scanner UART route probe"
+
+### What I did
+
+- Replaced startup's six-command sequence with a minimal path: scanner power,
+  UART initialization, and one firmware query. Removed the duplicate firmware
+  query from `QRUI::start()`.
+- Changed engine configuration helpers to return `OK`, `TIMEOUT`,
+  `ACK_MISMATCH`, or `INVALID`; console output now reports the actual owner
+  transaction instead of printing “mode set” immediately after enqueue.
+- Added TX hexdumps and ACK timeout/mismatch diagnostics in `sendCmd()`.
+- Added owner-mediated `qr power-cycle`, `qr trig low|high|pulse`, `qr uart`,
+  and `qr suffix` commands.
+- Added `qr lines` to read the expander output registers, input samples, and
+  G14 scanner-RX level.
+- Added `qr baud-probe` for 115200, 9600, 19200, 38400, 57600, 4800, 2400,
+  1200, and 128000. No rate produced a firmware response; host UART restored
+  115200.
+- Added `qr route-probe` for the safe QRCode DIP routes G13/G14, G17/G18, and
+  G43/G44. No route produced a firmware response; firmware restored G13/G14.
+  The G6/G7 route was deliberately omitted because those are H2 control lines
+  unless physical H2 isolation is re-verified.
+- Fixed the UI diagnostic freeze: BtnA/BtnB now enqueue requests without
+  waiting. Console commands remain synchronous for accurate ACK reporting.
+- Corrected suffix-enable expected ACK from four bytes to the five-byte config
+  write form `22 51 4C 01 00`.
+
+### Why
+
+- AUTO, light, and stop commands all require ACKs. Observing zero ACK bytes
+  distinguishes “engine rejected this mode” from “nothing is arriving on
+  scanner TX.”
+- A route and baud sweep are non-destructive ways to test whether persistent
+  factory reset changed serial settings or the physical QRCode DIP route no
+  longer matches firmware.
+- UI rendering and touch input must not depend on a scanner ACK. The display
+  task remains responsive while owner diagnostics wait on bounded UART reads.
+
+### What worked
+
+- All diagnostic builds completed with ESP-IDF 5.3.4 and flashed via the
+  stable USB by-id port.
+- The scanner visibly power-cycled through expander channel 0; the user
+  confirmed the cycle.
+- Expander output registers read `pwr_wr=1` and `trig_wr=1` after startup.
+- G14 scanner RX sampled idle-high (`rx_g14=1`), not stuck low.
+- The crashloop did not return.
+- UI mode input was observed in logs; the apparent freeze was a synchronous
+  mode request waiting behind a long diagnostic/ACK timeout. The asynchronous
+  UI request path removes that coupling.
+
+### What didn't work
+
+- Minimal firmware query: `hdr_got=0`.
+- After owner-mediated scanner power cycle: firmware and serial queries both
+  returned zero bytes.
+- `21 62 41 03` (fill light always on): `ack timeout: got=0 expected=5`.
+- `21 61 41 02` (AUTO): `ack timeout: got=0 expected=5`.
+- `32 75 02` (stop): `ack timeout: got=0 expected=5`.
+- Hardware TRIG low for 100 ms then high produced no decoded bytes.
+- All documented baud rates returned zero firmware header bytes.
+- G13/G14, G17/G18, and G43/G44 all returned zero firmware header bytes.
+
+### What I learned
+
+- The user guide marks 115200 as the factory-default baud, and the sweep
+  independently ruled out a baud change.
+- `startDecode` has no protocol ACK. An `OK` result only proves that ESP-IDF
+  accepted three TX bytes; it does not prove the scanner received them.
+- PI4IOE5V6408 output-register reads are the useful software state here:
+  `pwr_wr=1`, `trig_wr=1`. The input-status register sampled both output
+  channels low, but that cannot be interpreted as power-off because the user
+  visibly observed the commanded power cycle.
+- Once every ACK command receives zero bytes across all rates/routes, changing
+  scan framing or UI code cannot fix the scanner. The next evidence must come
+  from the module interface switch, routing DIPs, stack contact, or direct
+  electrical measurement.
+
+### What was tricky to build
+
+- Synchronous transactions are correct for console diagnostics but wrong for a
+  30 Hz UI task. During the baud sweep, a touch-generated mode command waited
+  behind roughly eight seconds of owner work, so the display appeared frozen.
+  Separate APIs now express the distinction: console calls transact and waits;
+  UI calls enqueue and returns immediately.
+- `digitalRead()` on expander output channels produced low samples even while
+  the output latch was high and power cycling worked physically. Reporting
+  both latch and input values prevented another incorrect power diagnosis.
+
+### What warrants a second pair of eyes
+
+- Physically verify the Module13.2 USB/UART interface switch is on UART.
+- Verify QRCode UART routing is exactly QR_RX -> M5-Bus pin 23/G13 and QR_TX
+  -> pin 26/G14, with other QR UART routes disconnected.
+- Verify the H2's G13 DIP and other H2 DIPs remain NC/off, then inspect/reseat
+  all three stack connectors.
+- If physical configuration is correct, measure QR_5V_EN, TRIG, QR_TX, and
+  engine supply voltage with a meter or logic analyzer.
+
+### What should be done in the future
+
+- After physical verification, perform a complete 12 V + USB power removal,
+  wait, reconnect, and rerun `qr lines`, `qr status`, and `qr mode auto`.
+- Once any firmware response returns, stop sweeping routes and keep the found
+  route fixed before testing scan output.
+- Add an explicit “diagnostic busy” indicator if long probes remain in the
+  final firmware.
+
+### Code review instructions
+
+- Review `qr_engine.cpp` `sendCmd()` for exact TX/ACK reporting and bounded
+  waits.
+- Review `qr_module.cpp` `handle()` for power-cycle, trigger, baud, and route
+  probes; confirm all execute on the UART owner task.
+- Review `qr_ui.cpp` to confirm touch actions call only nonblocking request
+  methods.
+- Hardware replay order: `qr lines`, `qr power-cycle`, `qr status`,
+  `qr light on`, `qr mode auto`, then one route/baud probe only if status is
+  still silent.
+
+### Technical details
+
+- Minimal boot: `various/2026-08-23-scanner-minimal-boot-no-uart-reply.txt`.
+- Power-cycle/status: `various/2026-08-23-scanner-power-cycle-then-status.txt`.
+- ACK diagnostics: `various/2026-08-23-scanner-command-ack-diagnostics.txt`.
+- Baud sweep: `various/2026-08-23-scanner-all-baud-probe.txt`.
+- Route sweep: `various/2026-08-23-scanner-safe-route-probe.txt`.
+- Expander/line state:
+  `various/2026-08-23-expander-output-and-pin-samples.txt`.

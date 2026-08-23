@@ -1,0 +1,42 @@
+qr baud-probe
+I (21387) qr_engine: host UART baud=115200
+I (21437) qr_engine: tx 3 bytes
+I (21437) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (22257) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (22257) qr_engine: host UART baud=9600
+I (22307) qr_engine: tx 3 bytes
+I (22307) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (23127) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (23127) qr_engine: host UART baud=19200
+I (23177) qr_engine: tx 3 bytes
+I (23177) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (23997) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (23997) qr_engine: host UART baud=38400
+I (24047) qr_engine: tx 3 bytes
+I (24047) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (24867) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (24867) qr_engine: host UART baud=57600
+I (24917) qr_engine: tx 3 bytes
+I (24917) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (25737) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (25737) qr_engine: host UART baud=4800
+I (25787) qr_engine: tx 3 bytes
+I (25787) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (26607) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (26607) qr_engine: host UART baud=2400
+I (26657) qr_engine: tx 3 bytes
+I (26657) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (27477) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (27477) qr_engine: host UART baud=1200
+I (27527) qr_engine: tx 3 bytes
+I (27527) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (28347) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (28347) qr_engine: host UART baud=128000
+I (28397) qr_engine: tx 3 bytes
+I (28397) qr_engine: 0x3fcac730   43 02 c1                                          |C..|
+W (29217) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (29217) qr_engine: host UART baud=115200
+baud-probe: no response; restored host baud=115200
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>  
+cores3-qr>  

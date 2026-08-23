@@ -1,0 +1,4 @@
+qr lines
+lines: pwr_wr=1 pin=0 trig_wr=1 pin=0 rx_g14=1
+cores3-qr>  
+cores3-qr>  

@@ -31,3 +31,13 @@ Implemented firmware 0118-cores3-qrcode-scanner (Phases 1-4): skeleton+display, 
 
 - /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/app_main.cpp — Boot wiring
 
+
+## 2026-08-23
+
+Step 12: isolated no-scan state to zero scanner UART RX across all ACK commands, documented baud rates, and safe QRCode DIP routes; added observable diagnostics and nonblocking UI (commits 66ed582d, 8604fd71, 6e28274c, 888a0f66)
+
+### Related Files
+
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_engine.cpp — Command TX and ACK result instrumentation
+- /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0118-cores3-qrcode-scanner/main/qr_module.cpp — Owner-mediated power, trigger, baud, route, and electrical diagnostics
+

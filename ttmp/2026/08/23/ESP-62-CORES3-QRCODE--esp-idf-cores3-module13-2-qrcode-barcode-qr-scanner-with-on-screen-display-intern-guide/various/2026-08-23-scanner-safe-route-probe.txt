@@ -1,0 +1,19 @@
+qr route-probe
+I (7286) qr_engine: host UART baud=115200
+I (7286) qr_engine: host UART pins tx=13 rx=14
+I (7336) qr_engine: tx 3 bytes
+I (7336) qr_engine: 0x3fcac720   43 02 c1                                          |C..|
+W (8156) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (8156) qr_engine: host UART pins tx=17 rx=18
+I (8206) qr_engine: tx 3 bytes
+I (8206) qr_engine: 0x3fcac720   43 02 c1                                          |C..|
+W (9026) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (9026) qr_engine: host UART pins tx=43 rx=44
+I (9076) qr_engine: tx 3 bytes
+I (9076) qr_engine: 0x3fcac720   43 02 c1                                          |C..|
+W (9896) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+I (9896) qr_engine: host UART pins tx=13 rx=14
+route-probe: no response; restored G13/G14
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>  
+cores3-qr>  
