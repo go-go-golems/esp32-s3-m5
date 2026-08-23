@@ -28,24 +28,33 @@ extern "C" void app_main(void) {
     ESP_LOGI(kTag, "chip: model=%d rev=%d cores=%d", (int)chip.model,
              (int)chip.revision, (int)chip.cores);
 
+    ESP_LOGI(kTag, "step: M5.begin");
     M5.begin();
     M5.Display.init();
     M5.Display.setRotation(1);  // landscape 320x240
     M5.Display.setBrightness(80);
+    ESP_LOGI(kTag, "step: display ready");
+
+    // Start the USB console FIRST so the REPL is always available even if the
+    // module init blocks (e.g. I2C/UART hang, missing 12V).
+    g_console.start(g_qr);
+    ESP_LOGI(kTag, "step: console started");
 
     if (g_qr.begin()) {
         char fw[64] = {0};
-        bool ok = g_qr.engine().getInfos(0xC1, fw, sizeof(fw));
+        bool ok = g_qr.getInfo(0xC1, fw, sizeof(fw));
         ESP_LOGI(kTag, "module ready, firmware=%s", ok ? fw : "(no reply)");
-        g_qr.engine().setFillLightMode(QRCodeM14::FILL_ON_DECODE);
-        g_qr.engine().setPosLightMode(QRCodeM14::POS_ON_DECODE);
-        g_qr.engine().setTriggerMode(QRCodeM14::CONTINUOUS);
+        g_qr.setFillLightMode(QRCodeM14::FILL_ON_DECODE);
+        g_qr.setPosLightMode(QRCodeM14::POS_ON_DECODE);
+        g_qr.setTriggerMode(QRCodeM14::CONTINUOUS);
+        g_qr.engine().setModeUart();       // force decoded output to RS232/UART
+        g_qr.engine().enableSuffixCrLf();  // guarantee \r\n terminator for the pump
     } else {
         ESP_LOGE(kTag, "module init failed -- 12V power / DIP switch (UART) / stack");
     }
 
     g_ui.start(g_qr);       // UI task owns M5.update() + display
-    g_console.start(g_qr);  // esp_console over USB Serial/JTAG
+    ESP_LOGI(kTag, "step: UI started");
 
     ESP_LOGI(kTag, "ready -- UI + console started");
     while (true) {

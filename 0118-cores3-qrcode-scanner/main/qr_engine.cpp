@@ -21,8 +21,9 @@ void QRCodeM14::begin(uart_port_t port, int tx, int rx, int baud) {
     u.flow_ctrl = UART_HW_FLOWCTRL_DISABLE;
     u.source_clk = UART_SCLK_DEFAULT;
     ESP_ERROR_CHECK(uart_param_config(port, &u));
-    // RX buffer only; we don't need a TX buffer / event queue in the engine.
-    ESP_ERROR_CHECK(uart_driver_install(port, 1024, 0, 0, nullptr, 0));
+    // RX + TX buffers (TX must be >0 to avoid uart_write_bytes blocking on a
+    // zero-size TX queue). No event queue: the scan pump polls.
+    ESP_ERROR_CHECK(uart_driver_install(port, 1024, 1024, 0, nullptr, 0));
     ESP_ERROR_CHECK(uart_set_pin(port, tx, rx, UART_PIN_NO_CHANGE,
                                  UART_PIN_NO_CHANGE));
     ESP_LOGI(kTag, "uart%d @ %d 8N1 tx=%d rx=%d", port, baud, tx, rx);
@@ -52,16 +53,31 @@ QRCodeM14::CmdResult QRCodeM14::sendCmd(const uint8_t *cmd, size_t n,
 
 bool QRCodeM14::getInfos(uint8_t id, char *out, size_t out_cap) {
     uint8_t cmd[3] = {0x43, 0x02, id};
-    if (sendCmd(cmd, 3, nullptr, 0, 0) != OK) {
-        // sendCmd returns OK immediately when no ack expected; still drain.
+    sendCmd(cmd, 3, nullptr, 0, 0);
+    uint8_t hdr[5];
+    int got = 0;
+    int64_t deadline = esp_timer_get_time() + 800 * 1000;
+    while (got < 5 && esp_timer_get_time() < deadline) {
+        int n = uart_read_bytes(_port, hdr + got, 5 - got, pdMS_TO_TICKS(20));
+        if (n > 0) got += n;
     }
-    uint8_t buf[128];
-    int n = uart_read_bytes(_port, buf, sizeof(buf), pdMS_TO_TICKS(500));
-    if (n < 5 || buf[0] != 0x44) return false;
-    uint16_t len = (uint16_t)((buf[3] << 8) | buf[4]);
+    ESP_LOGW(kTag, "getInfos id=0x%02x hdr_got=%d byte0=0x%02x", id, got, got ? hdr[0] : 0);
+    if (got < 5 || hdr[0] != 0x44) return false;
+    uint16_t len = (uint16_t)((hdr[3] << 8) | hdr[4]);
     if (len > out_cap - 1) len = (uint16_t)(out_cap - 1);
-    memcpy(out, buf + 5, len);
-    out[len] = 0;
+    // read exactly `len` data bytes (with a generous timeout)
+    size_t need = len;
+    got = 0;
+    deadline = esp_timer_get_time() + 800 * 1000;
+    while ((size_t)got < need && esp_timer_get_time() < deadline) {
+        int n = uart_read_bytes(_port, (uint8_t *)out + got, need - got, pdMS_TO_TICKS(20));
+        if (n > 0) got += n;
+    }
+    out[got] = 0;
+    // drain any trailing bytes the engine streams after the payload
+    uart_flush_input(_port);
+    ESP_LOGW(kTag, "getInfos id=0x%02x data_len=%u data_got=%d -> '%s'", id, len, got, out);
+    // A valid 0x44 header means the query was answered, even if len==0.
     return true;
 }
 
@@ -97,6 +113,17 @@ void QRCodeM14::setPosLightMode(PosLightMode m) {
 void QRCodeM14::setModeUart() {
     static const uint8_t cmd[] = {0x21, 0x42, 0x40, 0x00};
     sendCmd(cmd, sizeof(cmd));
+}
+
+void QRCodeM14::enableSuffixCrLf() {
+    // suffix enable on: 21 51 4C 01
+    static const uint8_t en[] = {0x21, 0x51, 0x4C, 0x01};
+    static const uint8_t en_ack[] = {0x22, 0x51, 0x4C, 0x01};
+    sendCmd(en, sizeof(en), en_ack, sizeof(en_ack), 200);
+    // suffix content = \r\n: 21 51 C2 00 02 0D 0A  (len=2 then bytes)
+    static const uint8_t suf[] = {0x21, 0x51, 0xC2, 0x00, 0x02, 0x0D, 0x0A};
+    static const uint8_t suf_ack[] = {0x22, 0x51, 0xC2, 0x00, 0x00};
+    sendCmd(suf, sizeof(suf), suf_ack, sizeof(suf_ack), 200);
 }
 
 void QRCodeM14::setFillLightBrightness(int pct) {

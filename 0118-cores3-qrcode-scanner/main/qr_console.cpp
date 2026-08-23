@@ -21,6 +21,7 @@ static void print_usage(void) {
     printf("usage:\n");
     printf("  qr status            # read firmware(0xC1)+serial(0xC5)\n");
     printf("  qr info              # alias for status\n");
+    printf("  qr raw <hex...>       # send raw hex bytes, dump any reply (debug)\n");
     printf("  qr start             # start decoding (software trigger)\n");
     printf("  qr stop              # stop decoding\n");
     printf("  qr mode <key|cont|auto|pulse|sense>\n");
@@ -40,11 +41,12 @@ static int parse_mode(const char *s, QRCodeM14::TriggerMode *out) {
 }
 
 static int do_status() {
+    printf("[qr status] probing...\n");
+    fflush(stdout);
     char fw[64] = {0};
     char sn[64] = {0};
-    QRCodeM14 &eng = s_module->engine();
-    bool got_fw = eng.getInfos(0xC1, fw, sizeof(fw));
-    bool got_sn = eng.getInfos(0xC5, sn, sizeof(sn));
+    bool got_fw = s_module->getInfo(0xC1, fw, sizeof(fw));
+    bool got_sn = s_module->getInfo(0xC5, sn, sizeof(sn));
     if (!got_fw && !got_sn) {
         printf("qr status: NO REPLY -- check 12V power, DIP switch (UART), "
                "and that the module is stacked.\n");
@@ -60,20 +62,37 @@ static int cmd_qr(int argc, char **argv) {
         print_usage();
         return 0;
     }
-    QRCodeM14 &eng = s_module->engine();
     const char *sub = argv[1];
 
     if (!strcmp(sub, "status") || !strcmp(sub, "info")) {
         return do_status();
     }
-    if (!strcmp(sub, "start")) { eng.startDecode(); printf("started\n"); return 0; }
-    if (!strcmp(sub, "stop")) { eng.stopDecode(); printf("stopped\n"); return 0; }
-    if (!strcmp(sub, "reset")) { eng.factoryReset(); printf("factory reset sent\n"); return 0; }
+    if (!strcmp(sub, "raw")) {
+        // qr raw 43 02 C1  -> send raw hex, dump any reply (debug)
+        if (argc < 3) { printf("qr raw needs hex bytes, e.g. 'qr raw 43 02 C1'\n"); return 1; }
+        uint8_t cmd[16]; int n = 0;
+        for (int i = 2; i < argc && n < (int)sizeof(cmd); i++) {
+            cmd[n++] = (uint8_t)strtoul(argv[i], nullptr, 16);
+        }
+        char dump[128] = {0};
+        s_module->pausePump();
+        QRCodeM14 &eng = s_module->engine();
+        eng.sendCmd(cmd, n, nullptr, 0, 0);
+        int got = eng.readBytes((uint8_t *)dump, sizeof(dump) - 1, 800);
+        s_module->resumePump();
+        printf("rx %d bytes:", got);
+        for (int i = 0; i < got; i++) printf(" %02x", (uint8_t)dump[i]);
+        printf("\n");
+        return 0;
+    }
+    if (!strcmp(sub, "start")) { s_module->startScan(); printf("started\n"); return 0; }
+    if (!strcmp(sub, "stop")) { s_module->stopScan(); printf("stopped\n"); return 0; }
+    if (!strcmp(sub, "reset")) { s_module->factoryReset(); printf("factory reset sent\n"); return 0; }
     if (!strcmp(sub, "mode")) {
         if (argc < 3) { printf("qr mode needs <key|cont|auto|pulse|sense>\n"); return 1; }
         QRCodeM14::TriggerMode m;
         if (parse_mode(argv[2], &m) != 0) { printf("bad mode: %s\n", argv[2]); return 1; }
-        eng.setTriggerMode(m);
+        s_module->setTriggerMode(m);
         printf("mode set\n");
         return 0;
     }
@@ -84,20 +103,20 @@ static int cmd_qr(int argc, char **argv) {
         else if (!strcmp(argv[2], "decode")) m = QRCodeM14::FILL_ON_DECODE;
         else if (!strcmp(argv[2], "on")) m = QRCodeM14::FILL_ON;
         else { printf("bad light: %s\n", argv[2]); return 1; }
-        eng.setFillLightMode(m);
+        s_module->setFillLightMode(m);
         printf("light set\n");
         return 0;
     }
     if (!strcmp(sub, "brightness")) {
         if (argc < 3) { printf("qr brightness needs <0-100>\n"); return 1; }
         int v = atoi(argv[2]);
-        eng.setFillLightBrightness(v);
+        s_module->setBrightness(v);
         printf("brightness=%d\n", v);
         return 0;
     }
     if (!strcmp(sub, "beep")) {
         if (argc < 3) { printf("qr beep needs <on|off>\n"); return 1; }
-        eng.setDecodeSuccessBeep(!strcmp(argv[2], "on") ? 1 : 0);
+        s_module->setBeep(!strcmp(argv[2], "on") ? 1 : 0);
         printf("beep set\n");
         return 0;
     }

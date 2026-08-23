@@ -120,7 +120,7 @@ static void ui_task(void *arg) {
             int m = st->mode;
             do { m = (m + 1) % 6; } while (m == 3);  // 3 unused
             st->mode = (QRCodeM14::TriggerMode)m;
-            st->module->engine().setTriggerMode(st->mode);
+            st->module->setTriggerMode(st->mode);
             st->dirty = true;
             ESP_LOGI(kTag, "mode=%s", mode_name(st->mode));
         }
@@ -143,6 +143,7 @@ static void ui_task(void *arg) {
 }
 
 void QRUI::start(QRModule &module) {
+    ESP_LOGI(kTag, "start: entering (will read firmware)");
     static UIState st;
     st.module = &module;
     st.scanning = false;
@@ -152,8 +153,9 @@ void QRUI::start(QRModule &module) {
     st.hist_count = 0;
     st.dirty = true;
     // read firmware once for the top bar
-    if (!module.engine().getInfos(0xC1, st.firmware, sizeof(st.firmware))) {
+    if (!module.getInfo(0xC1, st.firmware, sizeof(st.firmware))) {
         strncpy(st.firmware, "(no reply)", sizeof(st.firmware) - 1);
     }
+    ESP_LOGI(kTag, "start: firmware=%s, creating UI task", st.firmware);
     xTaskCreate(ui_task, "qr_ui", 6144, &st, 4, nullptr);
 }

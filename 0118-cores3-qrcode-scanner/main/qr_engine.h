@@ -43,7 +43,8 @@ class QRCodeM14 {
     void setTriggerMode(TriggerMode m);      // 21 61 41 <m>
     void setFillLightMode(FillLightMode m);  // 21 62 41 <m>
     void setPosLightMode(PosLightMode m);    // 21 62 42 <m>
-    void setModeUart();             // 21 42 40 00 (restore UART from USB modes)
+    void setModeUart();             // 21 42 40 00 (force RS232/UART output)
+    void enableSuffixCrLf();       // 21 51 4C 01 (suffix on) + 21 51 C2 00 02 0D 0A (\r\n)
     void setFillLightBrightness(int pct);  // 21 62 48 <0..100>
     void setDecodeSuccessBeep(int count);  // 21 63 42 <count>
     void factoryReset();           // 32 76 01
