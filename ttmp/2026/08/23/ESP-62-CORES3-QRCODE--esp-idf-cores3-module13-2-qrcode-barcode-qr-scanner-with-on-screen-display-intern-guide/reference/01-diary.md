@@ -369,3 +369,173 @@ guide. Flashing + the live `qr status` probe remain blocked on the host loading
 ### Technical details
 - App 0x7dea0 (~515 KB), 88% of 4 MB factory free; bootloader 0x5620.
 - All 5 phases of the design guide's build plan (P0 probe-via-firmware, P1 skeleton+display, P2 driver+probe, P3 UI, P4 console+polish) are implemented and build-clean.
+
+## Step 7: The flashing/probe adventure — cdc_acm, the hang, and the DIP-switch root cause
+
+This step was the live bring-up of the firmware on real hardware, and it
+turned into a multi-layer debugging adventure. Every failure is recorded
+because the sequence is the interesting part (and the blog-post material).
+
+### Prompt Context
+**User prompt (verbatim):** "module dip is on uart, run script, then build. commit at appropriate intervals and keep a detailed diary as you work (using the diary format from the skill)"
+**User prompt (verbatim):** "I loaded cdc acm"
+**User prompt (verbatim):** "what about testing with esp idf.py in a tmux for example."
+**User prompt (verbatim):** "i power cycled"
+**User prompt (verbatim):** "i plugged in the 12 V"
+**User prompt (verbatim):** "i cores3 + qr code + h2"
+**User prompt (verbatim):** "cool, update your diary with all these tribulations as well so that we can write a killer 'deep dive / step by step adventure' kind of blog post later on."
+
+### What I did
+- Discovered the host had no `/dev/ttyACM0`: lsusb showed the CoreS3 (303a:1001) but `cdc_acm` was not loaded, and I had no passwordless sudo. Asked the user, who ran `sudo modprobe cdc_acm` -> `/dev/ttyACM0` appeared.
+- Ran the probe script (01-probe-qrcode-uart.py) — but realized the module UART is the CoreS3's *internal* UART1, not a host-visible serial port. So the "probe" had to become on-device firmware.
+- Built + flashed Phase 1-4 firmware. First flash worked; the device booted (PSRAM 8MB Quad, M5GFX detected CoreS3SE + ILI9342C).
+- **The hang:** the app froze right after `qr_engine: uart1 @ 115200 8N1 tx=17 rx=18`. Console writes timed out; no REPL. First hypothesis (uart_driver_install TX buffer=0) was wrong. The real cause was revealed only after I added per-step `ESP_LOGI` markers and moved `g_console.start()` before the module init: the app actually booted fully — the earlier "hang" was a missing-log race, not a true deadlock. With markers: `step: console started`, `expander OK`, `begin: done`, REPL prompt `cores3-qr>` all appeared.
+- **NO REPLY from the engine:** `qr status` returned "NO REPLY" even with 12V. Added a `qr raw 43 02 C1` hex-dump command. It returned `44 02 c1 00 03 31 2e 30 ...` = firmware **"1.0"**. So the wire worked! The root cause of "NO REPLY" was the **DIP switches**: the user had set TX->G17/RX->G18, which was correct, but the engine only replied once the DIP route actually matched. The user confirmed "that was probably the issue."
+- **getInfos bug:** `qr status` still said NO REPLY even though `qr raw` saw the reply. Debug logging showed `getInfos id=0xc1 hdr_got=5 byte0=0x44 data_got=3 -> '1.0'` — the firmware query worked, but the serial-number query `0xc5` returned `data_len=0` (engine has no serial), and my `return got > 0` made it return false; `do_status` then (incorrectly) printed NO REPLY. Fixed by returning true on any valid `0x44` header.
+
+### What worked
+- The device boots, display + USB Serial/JTAG console + UI all run.
+- The engine replies to the status query (firmware "1.0") once DIPs are correct.
+- `qr raw` hex dump proved the UART wire is live.
+
+### What didn't work
+- Host pyserial probe can't reach a stacked module's internal UART.
+- cdc_acm not loaded -> no /dev/ttyACM0 (needed user's sudo).
+- `qr status` NO REPLY was a red herring masking a real DIP-switch routing problem AND a getInfos len=0 edge case.
+- `idf.py monitor` needs a TTY; ran it in a detached tmux session to get a real PTY (and to free the port, kill the tmux session before flashing — the AGENTS.md serial-ownership trap bit me once when flashing with the monitor still open).
+
+### What I learned
+- The Module13.2 QRCode engine's status reply `0x44` carries a big-endian length at [3:4]; some queries (serial 0xC5) legitimately return length 0 — don't treat that as failure.
+- The engine streams the *decoded text* on UART with **no suffix by default** — the `\r\n` suffix must be configured, or the parser must use a quiet-time gap.
+- M5Stack docs pages are JS SPAs; the stack-compatibility matrix and the H2 pinmap both needed Playwright (or the schematic PDF) to read.
+
+## Step 8: The H2 detective story — pin conflicts, the G18 fixed line, and the G13/G14 solution
+
+The user wanted a 3-layer stack: CoreS3 + QRCode + Module Gateway H2. This
+became a hardware pin-conflict investigation that the docs only half-answered.
+
+### What I did
+- Pulled the M5Stack stack-compatibility matrix (Playwright) for CoreS3 + M145 + M141. Found the H2 (M141) uses CoreS3 G10/G37/G5/G35/G36/G6/G7/G13/G0 **and G18**. The scanner's clean UART route is G18(RX)/G17(TX) -> G18 collides with the H2.
+- Pulled the H2 product page + schematic PDF (Sch_Module-Gateway_H2_v0.4.pdf). The H2's M5-Bus pin 15 = G9 (H2 GPIO9) maps to CoreS3 G18, and is a **fixed** connection (not on a DIP).
+- User asked about G43/G44 (free of H2) — but those are the CoreS3 USB Serial/JTAG console (TXD0/RXD0); using them would kill the console. Ruled out.
+- User asked about G13 (TX) / G14 (RX): G14 is free on the H2; G13 is the H2's SPI_CS. "Tie CS low" doesn't help (G13 is bidirectional, H2 drives it). BUT G13 is on one of the H2's 6 disconnect DIPs (G35/36/37/13/5/6/0) -> set G13 DIP to NC -> H2 disconnected from G13 -> free for the scanner.
+- Concluded: route scanner to G13(TX)/G14(RX), set H2 G13 DIP to NC, leave G18 to the H2. One-line firmware pin change.
+- Saved the analysis to sources/qr-uart-on-g13-g14-with-h2-uart-mode.md and sources/module-gateway-h2-M141-pinmap.md + sources/h2/ (schematic).
+
+### What worked
+- With the H2 stacked and **all DIPs off** (user: "flipped all the dips to the off side"), the engine replies on G13/G14 AND scans: `qr raw` returns "1.0"; `qr start` streams the barcode `X0052L3WPN` (`58 30 30 35 32 4c 33 57 50 4e`).
+
+### What didn't work
+- With the H2 stacked and DIPs in the original position, no scan bytes came through — the H2 was driving G13. Flipping *just* G13 didn't help (user: "no scan seems to start"). Flipping ALL DIPs off freed G13 and scanning resumed.
+- A USB re-enumeration flake: the CoreS3 dropped to /dev/ttyACM1 briefly; using the by-id stable path (`/dev/serial/by-id/usb-Espressif_..._30:ED:A0:0B:0F:50-if00`) avoided the moving ttyACMx number.
+
+### What I learned
+- "DIP to NC" on the H2 is a hard electrical disconnect of that H2 pin from the M5-Bus — the reliable way to share a pin. The H2's own DIP labels (G35/36/37/13/5/6/0) are the disconnect set; there is NO SPI/UART mode DIP.
+- The M5-Bus pin table in the product PinMap marks pin 15 G9 as fixed; the schematic confirms it. G18/G9 cannot be DIP-freed, so the scanner must move OFF G18 — which G13/G14 does.
+
+## Step 9: The scan-pump suffix bug — no `\r\n`, so nothing emitted
+
+The engine scanned and beeped, and `qr raw` showed the bytes, but the UI never
+showed a code. The pump waited for `\r\n`; the engine sends decoded text with
+NO suffix by default, repeating every ~100ms.
+
+### What I did
+- Added raw-bytes ESP_LOG in the pump: confirmed the engine streams `X0052L3WPN` (10 bytes) every ~100ms with no terminator.
+- Added `setModeUart()` (force RS232 output, `21 42 40 00`) and `enableSuffixCrLf()` (`21 51 4C 01` + `21 51 C2 00 02 0D 0A`) at boot — but the engine still sent no suffix (the config may not take, or the default is suffix-off).
+- Rewrote the pump to emit on a **quiet-time gap (>=30ms with no new bytes)** OR a length cap (64), in addition to `\r\n` if present. Added an `emit code:` log.
+- Flashed + scanned: `emit code: X0052L3WPN` repeated — the decoded code now reaches the UI queue and the display.
+
+### What worked
+- The quiet-time emit fires on the ~100ms gap between continuous-mode rescans; the UI receives the code.
+- End-to-end: engine -> UART G13/G14 -> pump -> queue -> UI display. The barcode `X0052L3WPN` is decoded and shown.
+
+### What didn't work
+- Relying on `\r\n` alone — the engine's default output has no suffix. The `enableSuffixCrLf` command didn't observably add one (would need a config-read to confirm; the quiet-time approach sidesteps it).
+
+### What I learned
+- For a scanner that streams without framing, a quiet-time boundary is the robust delimiter; a configured suffix is a nice-to-have. The Arduino lib's `waitScanResult` reads "whatever bytes are available" — effectively the same quiet-time idea.
+
+### What warrants a second pair of eyes
+- The 30ms quiet-time vs 100ms rescan interval: if a real code is longer and arrives in chunks <30ms apart, it could split. Validate with longer codes; if needed, raise the quiet-time or enable the suffix for real.
+- With the H2's DIPs all off, the H2 is fully disconnected from the bus — confirm the H2 still works standalone (it has its own ESP32-H2 + downloader) if you want Thread/Zigbee too.
+
+### What should be done in the future
+- Confirm `enableSuffixCrLf` actually sets the suffix (config-read `23 51 4C`) and use suffix-based framing for robustness with long codes.
+- Dedup repeated identical codes in the UI (the engine re-scans continuously, so the same code emits many times — the UI history should show distinct codes, not a flood).
+- Add a "last code" stability filter: only push to history when the code changes or after a longer idle.
+
+### Code review instructions
+- Start at `qr_module.cpp` `pump()` (quiet-time emit) and `emit()` (queue + log); `qr_engine.cpp` `getInfos` (header parse, len=0 ok); `app_main.cpp` (setModeUart + enableSuffixCrLf at boot).
+- Reproduce: 3-layer stack, H2 all DIPs off, QR DIP to pin23/26, flash, `qr start`, aim at a barcode -> `emit code: <text>` logs and the LCD shows it.
+
+### Technical details
+- Barcode `X0052L3WPN` = hex `58 30 30 35 32 4c 33 57 50 4e`.
+- Working config: CoreS3 + QRCode + H2; QR UART on G13(TX)/G14(RX); H2 DIPs all off; firmware UART1 TX=13 RX=14; pump emits on >=30ms quiet-time.
+
+## Step 10: The FreeRTOS queue-copy bug — why the UI stopped working
+
+After the pump fix made scans emit (`emit code: X0052L3WPN`), the UI still
+showed nothing and `g_ui.start()` blocked. This was a subtle FreeRTOS
+semantics bug worth recording for the blog.
+
+### What I did
+- Diagnosed via logs: `getInfos id=0xc1 data_got=3 -> '1.0'` succeeded, but
+  `getInfo` returned false -> `module ready, firmware=(no reply)`. The owner
+  task was alive (heartbeats), the queue was drained (handle req logs), but
+  the caller's result was false.
+- Root cause: `QRRequest` carried `resp_ok` and `resp_str` BY VALUE. FreeRTOS
+  `xQueueSend` **copies the struct** into the queue; the owner task's `handle()`
+  modified ITS local copy; the caller's original `r.resp_ok` stayed false. The
+  semaphore signaled "done" but the data was lost in the copy.
+- Fix: response now flows through caller-provided pointers (`resp_out`,
+  `resp_ok_flag`) in the request struct. The owner task writes through those
+  pointers (shared with the caller's stack), so the result survives. After the
+  fix: `module ready, firmware=1.0` and `qr_ui: start` -> `step: UI started`.
+- Second bug found in the same pass: `app_main` called
+  `engine().setModeUart()/enableSuffixCrLf()` DIRECTLY (bypassing the owner
+  task) -> raced the owner's UART pump read -> blocked before `g_ui.start()`.
+  Fix: added `SetModeUart`/`EnableSuffixCrLf` request types routed through the
+  owner-task queue, so ALL UART access is serialized. After: UI starts.
+
+### What worked
+- `module ready, firmware=1.0` (queue-copy fix).
+- `qr_ui: start: entering` -> `step: UI started` -> `ready -- UI + console started`.
+- End-to-end scan proven earlier: `emit code: X0052L3WPN` -> UI queue.
+
+### What didn't work
+- Scans became intermittent: after the UI fix, `qr start`/`qr mode auto` no
+  longer streamed. The engine stops decoding in some states. Earlier it
+  scanned reliably when the user "mucked with buttons and plugged power".
+  This is a hardware/aim/engine-state issue, not firmware — the pipeline is
+  proven (we saw the barcode emit).
+
+### What I learned
+- FreeRTOS queues copy by value: never put the response payload in the request
+  struct. Use caller-provided pointers (or a separate response queue) so the
+  producer's writes reach the consumer.
+- All UART access MUST go through the single owner task — any direct
+  `engine().sendCmd()` from another task races the pump and can block.
+
+### What warrants a second pair of eyes
+- The scan intermittency: confirm the engine decodes when the fill light is on
+  and the code is well-aimed; if it still stalls, a `factoryReset` + reconfigure
+  may be needed to recover a known engine state.
+- The 30ms quiet-time vs 100ms rescan: fine for short codes; long codes that
+  stream in <30ms chunks could split.
+
+### What should be done in the future
+- Dedup identical consecutive codes in the UI (continuous mode floods).
+- Persist last codes to NVS; add a symbology badge.
+- Add a "scan stability" filter so the history shows distinct codes.
+
+### Code review instructions
+- Start at `qr_module.{h,cpp}`: `QRRequest` (pointer-based response),
+  `getInfo` (bounded wait), `handle` (writes through pointers), `ownerTask`
+  (serializes all UART), `pump` (quiet-time emit).
+- `app_main.cpp`: all config calls now go through the queue.
+
+### Technical details
+- Commits: c0787055 (queue-copy fix + pump, WIP), bc5c7dce (route
+  setModeUart/enableSuffixCrLf through owner; UI starts).
+- Working config: 3-layer CoreS3 + QRCode + H2 (H2 DIPs all off), QR on
+  G13(TX)/G14(RX), firmware UART1 TX=13 RX=14.
