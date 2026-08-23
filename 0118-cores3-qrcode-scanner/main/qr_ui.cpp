@@ -110,23 +110,23 @@ static void ui_task(void *arg) {
         // buttons
         if (M5.BtnA.wasClicked()) {
             bool requested = !st->scanning;
-            QRCodeM14::CmdResult result = requested
-                ? st->module->startScan() : st->module->stopScan();
-            if (result == QRCodeM14::OK) st->scanning = requested;
+            bool queued = requested ? st->module->requestStartScan()
+                                    : st->module->requestStopScan();
+            if (queued) st->scanning = requested;
             st->dirty = true;
             ESP_LOGI(kTag, "scan %s: %s", requested ? "start" : "stop",
-                     QRCodeM14::resultName(result));
+                     queued ? "queued" : "queue-full");
         }
         if (M5.BtnB.wasClicked()) {
             // cycle: KEY -> CONTINUOUS -> AUTO -> PULSE -> MOTION -> KEY
             int m = st->mode;
             do { m = (m + 1) % 6; } while (m == 3);  // 3 unused
             QRCodeM14::TriggerMode requested = (QRCodeM14::TriggerMode)m;
-            QRCodeM14::CmdResult result = st->module->setTriggerMode(requested);
-            if (result == QRCodeM14::OK) st->mode = requested;
+            bool queued = st->module->requestTriggerMode(requested);
+            if (queued) st->mode = requested;
             st->dirty = true;
             ESP_LOGI(kTag, "mode=%s: %s", mode_name(requested),
-                     QRCodeM14::resultName(result));
+                     queued ? "queued" : "queue-full");
         }
         // Drain scan results only when module initialization created the
         // queue. The UI remains usable and reports "no reply" without it.

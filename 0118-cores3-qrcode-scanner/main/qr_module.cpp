@@ -66,6 +66,18 @@ void QRModule::setTriggerLevel(bool high) {
     if (_io_exp) _io_exp->digitalWrite(kChTrig, high);
 }
 
+bool QRModule::enqueue(QRReqType type, uint8_t arg) {
+    if (!_ready || !_req_q) return false;
+    QRRequest request{};
+    request.type = type;
+    request.arg_u8 = arg;
+    if (xQueueSend(_req_q, &request, 0) != pdTRUE) {
+        ESP_LOGW(kTag, "request queue full: type=%d", (int)type);
+        return false;
+    }
+    return true;
+}
+
 QRCodeM14::CmdResult QRModule::command(QRReqType type, uint8_t arg) {
     QRRequest request{};
     request.type = type;
@@ -103,6 +115,15 @@ QRCodeM14::CmdResult QRModule::startScan() {
 }
 QRCodeM14::CmdResult QRModule::stopScan() {
     return command(QRReqType::StopDecode);
+}
+bool QRModule::requestStartScan() {
+    return enqueue(QRReqType::StartDecode);
+}
+bool QRModule::requestStopScan() {
+    return enqueue(QRReqType::StopDecode);
+}
+bool QRModule::requestTriggerMode(QRCodeM14::TriggerMode m) {
+    return enqueue(QRReqType::SetTriggerMode, (uint8_t)m);
 }
 
 bool QRModule::getInfo(uint8_t id, char *out, size_t cap) {
@@ -313,11 +334,14 @@ void QRModule::handle(const QRRequest &request) {
             response.cmd_result = QRCodeM14::OK;
             break;
         case QRReqType::GetElectricalState: {
-            int power = _io_exp ? _io_exp->digitalRead(kChPowerEn) : -1;
-            int trig = _io_exp ? _io_exp->digitalRead(kChTrig) : -1;
+            int power_wr = _io_exp ? _io_exp->getWriteValue(kChPowerEn) : -1;
+            int power_pin = _io_exp ? _io_exp->digitalRead(kChPowerEn) : -1;
+            int trig_wr = _io_exp ? _io_exp->getWriteValue(kChTrig) : -1;
+            int trig_pin = _io_exp ? _io_exp->digitalRead(kChTrig) : -1;
             int rx = gpio_get_level((gpio_num_t)kUartRx);
             std::snprintf(response.info, sizeof(response.info),
-                          "power_en=%d trig=%d rx_g14=%d", power, trig, rx);
+                          "pwr_wr=%d pin=%d trig_wr=%d pin=%d rx_g14=%d",
+                          power_wr, power_pin, trig_wr, trig_pin, rx);
             response.cmd_result = QRCodeM14::OK;
             break;
         }

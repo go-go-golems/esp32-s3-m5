@@ -77,8 +77,13 @@ class QRModule {
     bool begin();
     bool ready() const { return _ready; }
 
+    // Synchronous APIs are for console diagnostics. UI request APIs enqueue
+    // without waiting so scanner timeouts cannot freeze touch/display work.
     QRCodeM14::CmdResult startScan();
     QRCodeM14::CmdResult stopScan();
+    bool requestStartScan();
+    bool requestStopScan();
+    bool requestTriggerMode(QRCodeM14::TriggerMode m);
     bool getInfo(uint8_t id, char *out, size_t cap);
     bool rawCommand(const uint8_t *cmd, size_t cmd_len, uint8_t *out,
                     size_t out_cap, size_t *out_len);
@@ -111,6 +116,7 @@ class QRModule {
 
     void setEnable(bool en);
     void setTriggerLevel(bool high);
+    bool enqueue(QRReqType type, uint8_t arg = 0);
     QRCodeM14::CmdResult command(QRReqType type, uint8_t arg = 0);
     bool transact(QRRequest &request, QRResponse *response);
     void pump(const uint8_t *data, int n);
