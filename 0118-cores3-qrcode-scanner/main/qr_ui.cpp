@@ -53,7 +53,13 @@ static void draw(M5Canvas &c, const UIState &st) {
     c.setFont(&fonts::Font0);
     c.setTextColor(TFT_CYAN, TFT_BLACK);
     c.setCursor(6, 32);
-    c.printf("fw=%s", st.firmware[0] ? st.firmware : "(no reply)");
+    if (st.firmware[0]) {
+        c.printf("fw=%s", st.firmware);
+    } else {
+        c.print("UART OFFLINE: scanner may be in USB mode");
+        c.setCursor(6, 43);
+        c.print("Scan Serial Communication config: 21424000");
+    }
 
     // center: last code, large yellow, word-wrapped
     c.setTextColor(TFT_YELLOW, TFT_BLACK);
