@@ -50,7 +50,10 @@ struct ServiceSnapshot {
     LifecycleState engine_state{LifecycleState::New};
     Mode mode{Mode::Reader};
     bool tag_present{false};
-    TagInfo last_tag{};
+    std::array<TagInfo, 4> tags{};  // up to 4 detected tags
+    uint8_t tag_count{0};
+    uint8_t empty_scans{0};        // consecutive empty scans for removal detection
+    TagInfo last_tag{};             // last activated tag (for single-tag ops)
     ActivationSource last_source{ActivationSource::REQA};
     uint32_t operations{0};
     uint32_t failures{0};

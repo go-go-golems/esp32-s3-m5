@@ -135,11 +135,22 @@ void Service::execute(const Command& cmd) {
             auto r = engine_.scan(1000);
             snapshot_.tag_present = r.ok() && !r.value().tags.empty();
             if (r.ok() && !r.value().tags.empty()) {
+                snapshot_.tag_count = 0;
+                for (size_t i = 0; i < r.value().tags.size() && i < snapshot_.tags.size(); ++i) {
+                    snapshot_.tags[i] = r.value().tags[i];
+                    ++snapshot_.tag_count;
+                }
                 snapshot_.last_tag = r.value().tags[0];
+                snapshot_.empty_scans = 0;  // reset removal counter
+            } else if (r.ok() && r.value().tags.empty()) {
+                // Scan found no tags. Increment a counter; only clear the
+                // list after 3 consecutive empty scans (tags truly removed).
+                if (++snapshot_.empty_scans >= 3) {
+                    snapshot_.tag_count = 0;
+                }
             }
             if (!r.ok()) {
-                snapshot_.last_error = r.error();
-                ++snapshot_.failures;
+                count_failure(r.error());
             }
             break;
         }

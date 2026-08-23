@@ -43,6 +43,8 @@ private:
     lv_obj_t* _size_label = nullptr;
     lv_obj_t* _ndef_label = nullptr;
     lv_obj_t* _raw_label = nullptr;
+    lv_obj_t* _tag_list_panel = nullptr;   // persistent UID list panel
+    lv_obj_t* _tag_list_label = nullptr;   // compact UID list text
 
     lv_obj_t* _read_button = nullptr;
     lv_obj_t* _auto_button = nullptr;

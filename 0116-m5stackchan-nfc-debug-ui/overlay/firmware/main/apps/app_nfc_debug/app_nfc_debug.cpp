@@ -53,6 +53,8 @@ void AppNfcDebug::onRunning()
     // Auto-poll: submit commands periodically when enabled.
     if (_auto_poll.load()) {
         gogolem::nfc::Command cmd{};
+        cmd.kind = gogolem::nfc::ServiceCommand::Scan;
+        _service.submit(cmd);
         cmd.kind = gogolem::nfc::ServiceCommand::ActivateOne;
         _service.submit(cmd);
         cmd.kind = gogolem::nfc::ServiceCommand::RawRead;
