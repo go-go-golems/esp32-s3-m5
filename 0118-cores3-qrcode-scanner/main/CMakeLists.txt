@@ -4,6 +4,7 @@ idf_component_register(
         "qr_engine.cpp"
         "qr_module.cpp"
         "qr_console.cpp"
+        "qr_ui.cpp"
     INCLUDE_DIRS
         "."
 )
