@@ -9,7 +9,7 @@ The active baseline is design-doc/03, the fresh first-principles native review. 
 - [x] Run existing PBUI baseline tests and retain actual-source probes and a sanitized C++ selection experiment.
 - [x] Write a replacement intern guide explaining mathematical foundations, design patterns, compatibility changes, native APIs, LCD/keyboard architecture, budgets, failures, and phased implementation.
 - [x] Update index, supersession banners, file relationships, changelog, and detailed diary; validate with docmgr doctor.
-- [ ] Dry-run and upload the new guide to reMarkable; record successful upload evidence and delivery commit.
+- [x] Dry-run and upload the new guide to reMarkable; record successful upload evidence and delivery commit.
 
 ## Active native implementation backlog (not started)
 

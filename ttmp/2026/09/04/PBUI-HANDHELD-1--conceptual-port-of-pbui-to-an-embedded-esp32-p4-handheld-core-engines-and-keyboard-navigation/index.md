@@ -38,10 +38,10 @@ Inputs:
 - `sources/pbui-handheld-project-report.md` - the design rationale and open questions.
 - The pbui kernel (`src/presentation`), `workbench-core`, and the ESP32-P4 PicoCalc firmware tree (`/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5`: 0099 display+keyboard, 0101 native QuickJS, 0102 visual REPL/PicoOS, `components/`).
 
-Deliverables:
+Original deliverables (historical):
 
-- `design-doc/01-pbui-handheld-port-analysis-design-and-implementation-guide.md` - the intern guide: hardware and firmware evidence, the pbui tour, the prototype tour and its pbui mapping, gap analysis, design with ten decision records, pseudocode for the key flows, a nine-phase plan, test strategy, risks, references.
-- `reference/01-investigation-diary.md` - how the guide was derived.
+- `design-doc/01-pbui-handheld-port-analysis-design-and-implementation-guide.md` - initial QuickJS-oriented analysis; superseded by the native review below.
+- `reference/01-investigation-diary.md` - how the original guides were derived.
 
 ## Current direction and location
 
@@ -52,7 +52,8 @@ The initial QuickJS guide (01) and first native proposal (02) are historical des
 - **[Read first: PBUI on PicoCalc from first principles](design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md)** — roughly 15,000 words covering the independent review, order/algebra/query/state-machine foundations, explicit native contracts, corrected driver assumptions, eight implementation phases, and verification.
 - **Evidence:** `sources/pbui-conformance-baseline.json` (307 tests passed), `sources/contract-probe-results.json`, `sources/selection-algebra-results.txt`, and `sources/source-inventory.json`.
 - **Current design:** fixed-rule native core and direct relations; explicit command schema and receiver policies; distinct reference/occurrence/view identities; shared interaction frame; correlated acceptance and fresh actions; 40 MHz synchronous row rendering; flat deck; bounded resource policies.
-- **Migration commits:** firmware `61c0759`, pbui removal `dde7d66`. **Research commit:** firmware `01e1ffa`.
+- **Migration commits:** firmware `61c0759`, pbui removal `dde7d66`. **Research commit:** firmware `01e1ffa`. **Replacement design commit:** firmware `af79f00`.
+- **Delivery:** guide 03 and review diary through Step 3 uploaded successfully as `/ai/2026/09/04/PBUI-HANDHELD-1/PBUI-HANDHELD-1 Native First Principles Review.pdf`. See `sources/remarkable-delivery.json` and the local diary's Step 4 for the delivery record.
 
 - [First native proposal](design-doc/02-native-c-pbui-subset-for-the-esp32-p4-picocalc.md)
 - [Fresh review diary](reference/03-native-redesign-review-diary.md)
@@ -87,7 +88,7 @@ See [changelog.md](./changelog.md) for recent changes and decisions.
 
 ## Structure
 
-- design/ - Architecture and design documents
+- design-doc/ - Architecture and design documents
 - reference/ - Prompt packs, API contracts, context summaries
 - playbooks/ - Command sequences and test procedures
 - scripts/ - Temporary code and tooling

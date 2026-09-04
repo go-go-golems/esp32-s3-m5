@@ -1,0 +1,30 @@
+{
+  "ticket": "PBUI-HANDHELD-1",
+  "date": "2026-09-04",
+  "input_commit": "af79f00706961d34ce2907c8dd9e755d1dc214eb",
+  "inputs": [
+    {
+      "path": "design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md",
+      "sha256": "09b1c361594aabc13e09baccb57608a5cdc16ccf99f9ba6d0f0a19a175d3264d",
+      "bytes": 110951
+    },
+    {
+      "path": "reference/03-native-redesign-review-diary.md",
+      "sha256": "35e91a6c9dc3e9332413ce09acbacae24e03fd5672b5f79e09a97bd86a7ed1ac",
+      "bytes": 25953
+    }
+  ],
+  "remote_directory": "/ai/2026/09/04/PBUI-HANDHELD-1",
+  "name": "PBUI-HANDHELD-1 Native First Principles Review.pdf",
+  "dry_run": "passed",
+  "upload_exit_code": 0,
+  "upload_stdout": "OK: uploaded PBUI-HANDHELD-1 Native First Principles Review.pdf -> /ai/2026/09/04/PBUI-HANDHELD-1",
+  "verification": "Explicit successful upload output; no redundant cloud listing",
+  "preflight": {
+    "pandoc_math_nodes": 13,
+    "standalone_xelatex_pdf_pages": 36,
+    "stderr_warnings": 0,
+    "note": "Standalone guide render, not the uploaded guide-and-diary bundle page count"
+  },
+  "scope_note": "Uploaded diary is the design-commit version through Step 3; local Step 4 records delivery afterward. No firmware implementation or hardware test."
+}

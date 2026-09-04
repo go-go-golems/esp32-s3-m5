@@ -29,6 +29,8 @@ RelatedFiles:
       Note: Reproducible source anchors and hashes
     - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/pbui-conformance-baseline.json
       Note: 307-test baseline
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/remarkable-delivery.json
+      Note: Exact delivered input commit and hashes plus successful upload evidence
     - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/source-inventory.json
       Note: Source hashes and symbol anchors
     - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/ticket-migration-manifest.json
@@ -41,6 +43,7 @@ LastUpdated: 2026-09-04T15:00:00-04:00
 WhatFor: Review and resume the native redesign with exact evidence and commit boundaries.
 WhenToUse: Read before continuing this review or implementing its replacement design.
 ---
+
 
 
 
@@ -287,3 +290,81 @@ Another subtle issue was frame identity at physical keypress time. The keyboard 
 ### Technical details
 
 The target payload lower bounds at 40 MHz are 2.048 ms per 320×16 RGB565 row and 40.96 ms per full 320×320 payload. They exclude command/setup, byte swapping, rasterization, and scheduling. Proposed caller raster buffer: 10,240 bytes, separate from the driver's existing 32,768-byte internal staging buffer.
+
+**Commit (design and bookkeeping):** `af79f00706961d34ce2907c8dd9e755d1dc214eb` — "docs(pbui): replace native plan with first-principles intern implementation guide".
+
+## Step 4: Publish the reviewed guide and record delivery
+
+I committed the complete replacement guide before uploading so the delivered document has an exact Git version. The reMarkable bundle contains the new guide and this diary through Step 3, rather than presenting superseded designs as competing instructions. The local delivery entry necessarily postdates that upload and is not claimed to be inside the uploaded PDF.
+
+The upload returned an explicit success. I recorded the command, content hashes, commit, and success text in a small JSON artifact, marked review delivery complete, and left all firmware phases unchecked. The ticket remains active because implementation is still future work.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Complete the requested reMarkable delivery and preserve appropriate commits plus a detailed skill-format diary.
+
+**Inferred user intent:** Make the design available to read on the device and leave a reliable continuation/review trail.
+
+### What I did
+
+- Ran `docmgr doctor --ticket PBUI-HANDHELD-1 --stale-after 30`; all checks passed.
+- Reviewed the staged diff and ran `git diff --cached --check` before the focused design commit.
+- Dry-ran the guide-and-diary bundle, checked thirteen math nodes in Pandoc, and rendered a standalone 36-page preflight PDF with XeLaTeX before the real upload.
+- Uploaded `PBUI-HANDHELD-1 Native First Principles Review.pdf` to `/ai/2026/09/04/PBUI-HANDHELD-1` without overwriting the older guide bundle.
+- Captured exact success evidence in `sources/remarkable-delivery.json`, updated the landing page and review checklist, and prepared this final diary/delivery commit.
+
+### Why
+
+- A successful upload command is the reMarkable skill's required verification; redundant status/auth/listing calls are not necessary.
+- Keeping the research experiments, design, and delivery bookkeeping in separate commits makes the independent conclusions and publication state easy to review.
+- The old design documents remain available for provenance but are clearly superseded.
+
+### What worked
+
+- Real upload returned: `OK: uploaded PBUI-HANDHELD-1 Native First Principles Review.pdf -> /ai/2026/09/04/PBUI-HANDHELD-1`.
+- All review/delivery tasks are complete. Existing PBUI tests and research probes are preserved with their outputs; no firmware tests are falsely claimed.
+- Unrelated firmware worktree artifacts and dirty submodules were not staged.
+
+### What didn't work
+
+- No upload or authentication failure occurred. Earlier validation and math-delimiter failures are recorded in Step 3.
+
+### What I learned
+
+- The bundle dry-run previews inputs and destination but does not invoke Pandoc. A separate render/AST preflight is needed to catch mathematical typography errors before publication.
+
+### What was tricky to build
+
+The delivery diary cannot include its own future commit hash or upload outcome before the upload exists. I pinned the delivered inputs to the design commit, uploaded once, and recorded delivery in a subsequent local entry and commit. This avoids an endless overwrite cycle and preserves exactly what was sent.
+
+### What warrants a second pair of eyes
+
+- Confirm that guide 03's proposed compatibility profile and command/acquisition contracts are accepted before beginning firmware work.
+- Hardware timing, physical flash size, PSRAM/internal-memory peaks, queue sizing, and input recovery remain unmeasured design risks.
+
+### What should be done in the future
+
+- Start the active Phase A–H backlog, beginning with the host harness and shared-contract tests.
+- Implement no production behavior from the older guides without checking guide 03's corrections.
+
+### Code review instructions
+
+- Compare migration commits `61c0759` and `dde7d66`, research commit `01e1ffa`, and design commit `af79f00`.
+- Read the new guide, run the three numbered research scripts, and inspect the retained baseline/probe outputs.
+- Check the delivery artifact's hashes against `git show af79f00:<ticket>/<relative-input-path>`.
+- Rerun doctor in the firmware repository; expect all checks passed and all implementation phases still unchecked.
+
+### Technical details
+
+```bash
+remarquee upload bundle \
+  <ticket>/design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md \
+  <ticket>/reference/03-native-redesign-review-diary.md \
+  --name 'PBUI-HANDHELD-1 Native First Principles Review' \
+  --remote-dir /ai/2026/09/04/PBUI-HANDHELD-1 \
+  --toc-depth 2 --non-interactive
+```
+
+No firmware implementation, build, flash, or hardware timing measurement was performed in this task.
