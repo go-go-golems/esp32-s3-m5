@@ -1,0 +1,29 @@
+# ESP-60-M5STACKCHAN-NFC Phase 1: standalone NFC reader for the M5StackChan.
+# ESP32-S3 (CoreS3) + ST25R3916 NFC reader IC on the body I2C bus.
+#
+# Per esp32-s3-m5/AGENTS.md:
+#  - ESP32-S3 console is USB Serial/JTAG (UART pins are repurposed for peripherals).
+#  - Component deps go in main/idf_component.yml, not project root.
+#
+# ESP-IDF 5.5.4 Project Minimal Configuration
+CONFIG_IDF_TARGET="esp32s3"
+
+# Console over USB Serial/JTAG (the only sane interactive path on the CoreS3).
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y
+CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG_ENABLED=y
+# Disable UART console so it does not conflict with repurposed UART pins.
+CONFIG_ESP_CONSOLE_UART_NUM=-1
+
+# App task stack: the REPL + I2C driver are lightweight; 8 KB is comfortable.
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=8192
+# Optimize for size; NFC driver is small.
+CONFIG_COMPILER_OPTIMIZATION_SIZE=y
+
+# No PSRAM, no WiFi, no BLE for this standalone reader.
+
+# Phase 4: compile in the I2C master driver DEBUG log lines so we can confirm
+# I2C_EVENT_NACK at runtime via `esp_log_level_set("i2c.master", DEBUG)`.
+# Keep CONFIG_LOG_DEFAULT_LEVEL at INFO; the nfc-i2c-debug command raises only
+# the i2c.master tag for a short classification run (design doc 04 S9.1).
+CONFIG_I2C_ENABLE_DEBUG_LOG=y

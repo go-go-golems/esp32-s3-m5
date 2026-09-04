@@ -11,13 +11,14 @@
 #include "app_book_seed.h"
 #include "app_buzzer.h"
 #include "app_home.h"
+#include "app_images.h"
 #include "app_input.h"
 #include "app_js.h"
 #include "app_power.h"
-#include "net_auth.h"
+#include "app_shot.h"
 #include "net_http.h"
+#include "net_mdns.h"
 #include "net_serve.h"
-#include "net_socket.h"
 #include "net_wifi.h"
 #include "s3paper_runtime/runtime.h"
 #include "s3paper_storage/storage.h"
@@ -26,11 +27,6 @@ namespace pulp {
 namespace {
 
 const char *kTag = "owner";
-const char *kDemoIssuer = "https://192.168.0.39:8790/idp";
-const char *kDemoResource = "https://192.168.0.39:8790/api";
-const char *kDemoSocket = "wss://192.168.0.39:8790/api/v1/sensors/ws";
-const char *kDemoClient = "pulp-papers3";
-const char *kDemoScopes = "openid profile demo.read sensors.read";
 
 constexpr uint8_t kSourceCount = static_cast<uint8_t>(EventSource::kCount);
 constexpr uint8_t kKindCount = static_cast<uint8_t>(AppEventKind::kCount);
@@ -240,7 +236,7 @@ void HandleConsoleCommand(const AppEvent &event) {
             const uint32_t arg = event.payload.console.arg;
             if (arg == 0) {
                 (void)JsInit();
-            } else if (arg >= 20 && arg <= 45) {
+            } else if (arg >= 20 && arg <= 49) {
                 reply.status = JsRunProbe(arg - 20);
             } else if (arg == 10) {
                 reply.status = JsRunPulp();
@@ -254,6 +250,8 @@ void HandleConsoleCommand(const AppEvent &event) {
                     event.payload.console.arg2, 270, 480);
             } else if (arg == 13) {
                 JsPrintHits();
+            } else if (arg == 14) {
+                reply.status = JsRunMeasure();  // ESP-55 Phase 0
             } else {
                 reply.status = StatusCode::InvalidArgument;
             }
@@ -387,46 +385,52 @@ void HandleConsoleCommand(const AppEvent &event) {
             FillServeSnapshot(&reply.payload.serve);
             break;
         }
-        case ConsoleOp::Auth: {
-            switch (event.payload.console.arg) {
-                case 1:
-                    if (AuthStatus() ==
-                        static_cast<int32_t>(AuthState::Unconfigured)) {
-                        reply.status = AuthConfigure(kDemoIssuer, kDemoClient,
-                                                     kDemoScopes, kDemoResource);
-                    }
-                    if (reply.status == StatusCode::Ok) {
-                        reply.status = AuthStart();
-                    }
-                    break;
-                case 2:
-                    SocketStop();
-                    AuthClear();
-                    break;
-                default:
-                    break;
-            }
-            FillAuthSnapshot(&reply.payload.auth);
+        case ConsoleOp::Shot: {
+            uint32_t len = 0;
+            reply.status = ShotToConsole(&len) ? StatusCode::Ok
+                                               : StatusCode::CorruptData;
             break;
         }
-        case ConsoleOp::Socket: {
+        case ConsoleOp::Battery: {
+            // arg 0 = status snapshot (level/mv/charging). Battery has no
+            // verbs beyond read; the JS singleton is the rich surface.
+            FillPowerSnapshot(&reply.payload.power);
+            break;
+        }
+        case ConsoleOp::Mdns: {
+            // ESP-54 P2: arg 0 = status, 1 = announce (arg2 = port), 2 = stop.
             switch (event.payload.console.arg) {
                 case 1:
-                    reply.status = SocketBegin(kDemoSocket);
-                    if (reply.status == StatusCode::Ok) {
-                        reply.status = SocketBearer();
-                    }
-                    if (reply.status == StatusCode::Ok) {
-                        reply.status = SocketStart();
-                    }
+                    reply.status = MdnsAnnounce(static_cast<uint16_t>(
+                        event.payload.console.arg2));
                     break;
                 case 2:
-                    SocketStop();
+                    reply.status = MdnsStop();
                     break;
                 default:
                     break;
             }
-            FillSocketSnapshot(&reply.payload.socket);
+            FillMdnsSnapshot(&reply.payload.mdns);
+            break;
+        }
+        case ConsoleOp::Images: {
+            // ESP-54 P3: arg 0 = status, 1 = list, 2 = display (str_a),
+            // 3 = remove (str_a), 4 = received-cb status.
+            const ConsolePayload &c = event.payload.console;
+            switch (c.arg) {
+                case 1:
+                    ImagesPrintCatalog();
+                    break;
+                case 2:
+                    reply.status = ImagesDisplay(c.str_a);
+                    break;
+                case 3:
+                    reply.status = ImagesRemove(c.str_a);
+                    break;
+                default:
+                    break;
+            }
+            FillImagesSnapshot(&reply.payload.images);
             break;
         }
     }
@@ -471,12 +475,6 @@ void HandleEvent(const AppEvent &event) {
         case AppEventKind::ModuleDone: {
             int32_t value = event.payload.module_done.value;
             int32_t err = event.payload.module_done.err;
-            if (event.payload.module_done.module == ModuleId::Auth) {
-                AuthOwnerOnModuleDone(event.payload.module_done.kind,
-                                      event.payload.module_done.value,
-                                      event.payload.module_done.err);
-                break;
-            }
             if (event.payload.module_done.module == ModuleId::Serve) {
                 // Serve requests carry route callbacks of their own; the
                 // single-slot module-cb path does not apply.
@@ -487,6 +485,11 @@ void HandleEvent(const AppEvent &event) {
                 !WifiOwnerOnModuleDone(event.payload.module_done.kind,
                                        &value, &err)) {
                 break;  // consumed by the joinSaved sequencer
+            }
+            if (event.payload.module_done.module == ModuleId::Mdns) {
+                // ESP-58: applies a stop that was deferred while the
+                // browse worker held a live query.
+                MdnsOnBrowseDone();
             }
             JsModuleDone(event.payload.module_done.module,
                          event.payload.module_done.kind, value, err);
@@ -509,8 +512,6 @@ void TickHooks() {
     JsTimerTick(now);
     BuzzerTick(now);
     WifiTick(now);
-    AuthTick(now);
-    SocketTick();
     PowerAutoTick(now);
 }
 
@@ -520,7 +521,16 @@ void OwnerTask(void *) {
     // All display/frame/storage state initializes inside the owner task so
     // no other task ever touches it. Boot flow: runtime -> storage mount
     // -> native home page -> touch on.
-    s3paper_runtime::RuntimeInit();
+    // ESP-54: a full 540x960 .g4 image is ~253 KiB and the bitmap op
+    // copies it into the frame arena (GlyphRun pattern). Raise the arena
+    // capacity so a full image + the usual text payloads fit. PSRAM is
+    // 8 MB; 320 KiB leaves ample headroom. Must be the FIRST RuntimeInit
+    // (it is idempotent; a later default call would be a no-op).
+    {
+        s3paper_runtime::RuntimeConfig cfg{};
+        cfg.arena_capacity = 320 * 1024;
+        s3paper_runtime::RuntimeInit(cfg);
+    }
     {
         // SPI bus is shared with the display: the pre-mount hook guarantees
         // M5GFX owns the bus before the SD mount (ESP-50 diary S9).
@@ -621,6 +631,21 @@ StatusCode PostEvent(const AppEvent &event) {
         static_cast<uint8_t>(event.source) >= kSourceCount ||
         static_cast<uint8_t>(event.kind) >= kKindCount) {
         return StatusCode::InvalidArgument;
+    }
+    // ESP-57: TimerDue ticks are droppable by design (the producer sends
+    // another one 20 ms later), but at ~50/s they can fill the queue while
+    // the owner is stuck in one long event (a full OS re-eval + CleanFull
+    // present is ~700 ms ≈ 35 ticks). Module completions are NOT droppable
+    // — a lost ModuleDone strands its JS callback forever (this is exactly
+    // how the catalog scan died silently). Reserve headroom: ticks may not
+    // consume the last kReservedForCritical slots.
+    if (event.kind == AppEventKind::TimerDue) {
+        constexpr UBaseType_t kReservedForCritical = 8;
+        if (uxQueueSpacesAvailable(s_event_queue) <= kReservedForCritical) {
+            s_dropped_by_source[static_cast<uint8_t>(event.source)]
+                .fetch_add(1, std::memory_order_relaxed);
+            return StatusCode::CapacityExceeded;
+        }
     }
     if (xQueueSend(s_event_queue, &event, 0) == pdTRUE) {
         return StatusCode::Ok;

@@ -11,9 +11,8 @@
 #include "freertos/task.h"
 
 #include "app_input.h"
-#include "net_auth.h"
+#include "net_mdns.h"
 #include "net_serve.h"
-#include "net_socket.h"
 #include "net_wifi.h"
 #include "s3paper/text.h"
 #include "s3paper/widget.h"
@@ -109,11 +108,11 @@ StatusCode PowerSleep(SleepMode mode, uint32_t seconds) {
     }
     ESP_LOGI(kTag, "sleep: mode=%s seconds=%u (quiesce begins)",
              SleepModeName(mode), static_cast<unsigned>(seconds));
-    // 0. Radio: stop the authenticated socket first, clear RAM-only OAuth
-    //    credentials, stop serving, then power RF down (ESP-53/54).
-    SocketStop();
-    AuthClear();
+    // 0. Radio: stop serving, drop the link, power the RF down (ESP-53).
+    //    Before touch-off so a wedged httpd handler cannot outlive input.
+    //    ESP-54: mDNS withdraws with serve/wifi (both called below).
     (void)ServeStop();
+    (void)MdnsStop();
     (void)WifiOff();
     // 1. Input: stop the touch tick producer.
     TouchDisable();

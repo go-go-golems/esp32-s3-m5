@@ -1,0 +1,9 @@
+smoke begin ok=1 state=ready-reader
+smoke activate ok=0 layer=rf
+smoke activate ok=1 source=REQA uid=04DAF74D9E6180 family=NTAG21x
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x
+smoke activate ok=1 source=WUPA uid=04DAF74D9E6180 family=NTAG21x

@@ -9,12 +9,17 @@ set(EXTRA_COMPONENT_DIRS
     "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_core"
     "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_m5"
     "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_storage"
-    "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_runtime")
+    "${CMAKE_CURRENT_LIST_DIR}/../components/s3paper_runtime"
+    "${CMAKE_CURRENT_LIST_DIR}/../components/screenshot_qoi")
 
 # Trim the build to main + resolved dependencies. esp_psram must be NAMED:
 # a trimmed COMPONENTS list silently drops its Kconfig symbols otherwise
 # and PSRAM vanishes with only a configure-time note.
 set(COMPONENTS main esp_psram)
+
+# screenshot_qoi's M5Unified dependency arrives here as the managed
+# component (see components/screenshot_qoi/CMakeLists.txt).
+set(ENV{SCREENSHOT_QOI_M5_COMPONENT} m5stack__m5unified)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(papers3_pulp_os)

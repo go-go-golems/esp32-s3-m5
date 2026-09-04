@@ -1,0 +1,5 @@
+# Phase 2 Engine activate_one build (ESP-IDF 5.5.4)
+
+52:Bootloader binary size 0x5160 bytes. 0x2ea0 bytes (36%) free.
+69:nfc_engine_smoke.bin binary size 0x54f50 bytes. Smallest app partition is 0x100000 bytes. 0xab0b0 bytes (67%) free.
+71:Project build complete. To flash, run:

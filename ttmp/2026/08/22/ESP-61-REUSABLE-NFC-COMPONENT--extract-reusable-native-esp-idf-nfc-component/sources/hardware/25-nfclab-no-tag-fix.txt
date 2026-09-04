@@ -1,0 +1,485 @@
+I (262) esp_image: segment 1: paddr=0011f228 vaddr=3fca1e00 size=00df0h (  3568) load
+I (263) esp_image: segment 2: paddr=00120020 vaddr=42000020 size=20b1a8h (2142632) map
+I (564) esp_image: segment 3: paddr=0032b1d0 vaddr=3fca2bf0 size=07b14h ( 31508) load
+I (569) esp_image: segment 4: paddr=00332cec vaddr=40378000 size=19d40h (105792) load
+I (587) esp_image: segment 5: paddr=0034ca34 vaddr=50000000 size=00020h (    32) load
+I (598) boot: Loaded app from partition at offset 0x20000
+I (598) boot: Disabling RNG early entropy source...
+I (608) esp_psram: Found 8MB PSRAM device
+I (608) esp_psram: Speed: 80MHz
+I (608) cpu_start: Multicore app
+I (618) cpu_start: GPIO 44 and 43 are used as console UART I/O pins
+I (618) cpu_start: Pro cpu start user code
+I (618) cpu_start: cpu freq: 240000000 Hz
+I (620) app_init: Application information:
+I (624) app_init: Project name:     stack-chan
+I (628) app_init: App version:      1.5.1
+I (632) app_init: Compile time:     Aug 21 2026 14:57:25
+I (637) app_init: ELF file SHA256:  8610baa5f...
+I (641) app_init: ESP-IDF:          v5.5.4
+I (645) efuse_init: Min chip rev:     v0.0
+I (649) efuse_init: Max chip rev:     v0.99
+I (653) efuse_init: Chip rev:         v0.2
+I (657) heap_init: Initializing. RAM available for dynamic allocation:
+I (663) heap_init: At 3FCB2088 len 00037688 (221 KiB): RAM
+I (668) heap_init: At 3FCE9710 len 00005724 (21 KiB): RAM
+I (673) heap_init: At 3FCF0000 len 00008000 (32 KiB): DRAM
+I (678) heap_init: At 600FE000 len 00001FE8 (7 KiB): RTCRAM
+I (684) esp_psram: Adding pool of 8192K of PSRAM memory to heap allocator
+I (691) spi_flash: detected chip: generic
+I (694) spi_flash: flash io: qio
+I (698) sleep_gpio: Configure to isolate all GPIO pins in sleep state
+I (703) sleep_gpio: Enable automatic switching of GPIO sleep configuration
+I (718) main_task: Started on CPU0
+I (728) esp_psram: Reserving pool of 64K of internal memory for DMA/internal allocations
+I (728) main_task: Calling app_main()
+[944086340605] [[32minfo[0m] [HAL] creating hal instance
+[944086340611] [[32minfo[0m] [HAL] init
+[944086340626] [[32minfo[0m] [HAL] xiaozhi board init
+I (758) Board: UUID=172aaa5c-cd01-4514-8aba-d6097964dadc SKU=m5stack-stack-chan
+I (758) M5Stack-StackChan-Board: Init AXP2101
+I (758) M5Stack-StackChan-Board: Set charge current success
+I (768) M5Stack-StackChan-Board: Init power save timer: sleep=300 s, shutdown=600 s, allow_shutdown_when_charging=0
+I (778) M5Stack-StackChan-Board: Init AW9523
+     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+
+00: 00 -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+20: -- 21 -- 23 -- -- -- -- -- -- -- -- -- -- -- --
+
+30: -- -- -- -- 34 -- 36 -- 38 -- -- -- -- -- -- --
+
+40: 40 41 -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+50: 50 51 -- -- -- -- -- -- 58 -- -- -- -- -- -- --
+
+60: -- -- -- -- -- -- -- -- 68 69 -- -- -- -- -- 6f
+
+70: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
+
+I (858) M5Stack-StackChan-Board: Init FT6336
+I (858) M5Stack-StackChan-Board: Init IlI9342
+I (868) ili9341: LCD panel create success, version: 1.2.0
+I (888) M5Stack-StackChan-Board: Reset IlI9342
+I (1018) M5Stack-StackChan-Board: CIPHER:0x64 / FIRMID:0x10 / VENDID:0x11, panel:ILI9342C
+I (1018) Display: Power management not supported
+I (1078) StackChanAvatarDisplay: Turning display on
+I (1078) StackChanAvatarDisplay: Initialize LVGL library
+I (1078) StackChanAvatarDisplay: Use 2MB of PSRAM for image cache
+I (1078) StackChanAvatarDisplay: Initialize LVGL port
+I (1088) StackChanAvatarDisplay: Adding LCD display
+I (1088) LVGL: Starting LVGL task
+I (1098) StackChanAvatarDisplay: Create boot logo label
+I (1138) M5Stack-StackChan-Board: Init Camera
+I (1138) gc0308: Detected Camera sensor PID=0x9b
+I (1218) StackChanCamera: Camera init success
+I (1228) Backlight: Set brightness to 75
+[944086341097] [[32minfo[0m] [HAL-MCP] init
+[944086341098] [[32minfo[0m] [HAL-MCP] add robot.get_head_angles tool
+I (1228) MCP: Add tool: self.robot.get_head_angles
+[944086341107] [[32minfo[0m] [HAL-MCP] add robot.set_head_angles tool
+I (1238) MCP: Add tool: self.robot.set_head_angles
+[944086341118] [[32minfo[0m] [HAL-MCP] add robot.set_led_color tool
+I (1248) MCP: Add tool: self.robot.set_led_color
+[944086341128] [[32minfo[0m] [HAL-MCP] add robot.create_reminder tool
+I (1258) MCP: Add tool: self.robot.create_reminder
+[944086341139] [[32minfo[0m] [HAL-MCP] add robot.get_reminders tool
+I (1268) MCP: Add tool: self.robot.get_reminders
+[944086341149] [[32minfo[0m] [HAL-MCP] add robot.stop_reminder tool
+I (1278) MCP: Add tool: self.robot.stop_reminder
+[944086341160] [[32minfo[0m] [HAL-HeadTouch] init
+I (1288) Si12T: Si12T initialized, version: 0.0.2
+I (1308) Si12T: Si12T setup done
+[944086341180] [944086341180] [[[32minfo[0m[32minfo[0m] ] [HAL-IOE] init
+[HAL-HeadTouch] start update task
+I (1508) PY32IOExpander: Version: 0x41
+[944086341832] [[32minfo[0m] [HAL-IOE] init done
+[944086341833] [[32minfo[0m] [HAL-RTC] init
+[944086341833] [[32minfo[0m] [HAL-RTC] PCF8563 init ok
+[944086341835] [[32minfo[0m] [HAL-RTC] load timezone from nvs: GMT0
+[944086342000] [[32minfo[0m] [HAL-RTC] rtc synced to system (UTC): 2000-00-01 22:12:22
+[944086342007] [[32minfo[0m] [HAL-IMU] init
+[944086342308] [[32minfo[0m] [HAL-IMU] BMI270 init ok
+[944086342309] [[32minfo[0m] [HAL-Servo] init
+I (2278) uart: ESP_INTR_FLAG_IRAM flag not set while CONFIG_UART_ISR_IN_IRAM is enabled, flag updated
+[944086342317] [[32minfo[0m] [ScsServo] id: 1 get zero pos: 446 from settings
+[944086342325] [[32minfo[0m] [ScsServo] id: 2 get zero pos: 652 from settings
+[944086342333] [[32minfo[0m] [HAL] lvgl init
+[944086342334] [[32minfo[0m] [HAL] create lvgl touchpad indev
+
+ _____ _____ _____ _____ _____ _____ _____ _____
+|     |     |     |   | |     |  _  |  |  |   __|
+| | | |  |  |  |  | | | |   --|     |    -|   __|
+|_|_|_|_____|_____|_|___|_____|__|__|__|__|_____|
+
+- @author Forairaaaaa
+- @version 2.3.3
+- @build at 14:58:25 Aug 21 2026
+
+[944086342374] [[32minfo[0m] [NFC.LAB] on create (NFC-only auto-open)
+[944086342374] [[32minfo[0m] [NFC.LAB] on open
+[944086346524] [[32minfo[0m] [NFC.LAB] ops=1 fail=0 tag=0 ndef_ok=0
+[944086346544] [[32minfo[0m] [NFC.LAB] ops=2 fail=0 tag=0 ndef_ok=0
+[944086346554] [[32minfo[0m] [NFC.LAB] ops=3 fail=0 tag=0 ndef_ok=0
+[944086346584] [[32minfo[0m] [NFC.LAB] ops=5 fail=0 tag=0 ndef_ok=0
+[944086346594] [[32minfo[0m] [NFC.LAB] ops=6 fail=0 tag=0 ndef_ok=0
+[944086346614] [[32minfo[0m] [NFC.LAB] ops=7 fail=0 tag=0 ndef_ok=0
+[944086346624] [[32minfo[0m] [NFC.LAB] ops=8 fail=0 tag=0 ndef_ok=0
+[944086346634] [[32minfo[0m] [NFC.LAB] ops=9 fail=0 tag=0 ndef_ok=0
+[944086346664] [[32minfo[0m] [NFC.LAB] ops=11 fail=0 tag=0 ndef_ok=0
+[944086346674] [[32minfo[0m] [NFC.LAB] ops=12 fail=0 tag=0 ndef_ok=0
+[944086346704] [[32minfo[0m] [NFC.LAB] ops=14 fail=0 tag=0 ndef_ok=0
+[944086346714] [[32minfo[0m] [NFC.LAB] ops=15 fail=0 tag=0 ndef_ok=0
+[944086346744] [[32minfo[0m] [NFC.LAB] ops=18 fail=0 tag=0 ndef_ok=0
+[944086346764] [[32minfo[0m] [NFC.LAB] ops=19 fail=0 tag=0 ndef_ok=0
+[944086346774] [[32minfo[0m] [NFC.LAB] ops=20 fail=0 tag=0 ndef_ok=0
+[944086346784] [[32minfo[0m] [NFC.LAB] ops=21 fail=0 tag=0 ndef_ok=0
+[944086346794] [[32minfo[0m] [NFC.LAB] ops=22 fail=0 tag=0 ndef_ok=0
+[944086346814] [[32minfo[0m] [NFC.LAB] ops=23 fail=0 tag=0 ndef_ok=0
+[944086346824] [[32minfo[0m] [NFC.LAB] ops=24 fail=0 tag=0 ndef_ok=0
+[944086346834] [[32minfo[0m] [NFC.LAB] ops=25 fail=0 tag=0 ndef_ok=0
+[944086346854] [[32minfo[0m] [NFC.LAB] ops=26 fail=0 tag=0 ndef_ok=0
+[944086346864] [[32minfo[0m] [NFC.LAB] ops=27 fail=0 tag=0 ndef_ok=0
+[944086346874] [[32minfo[0m] [NFC.LAB] ops=28 fail=0 tag=0 ndef_ok=0
+[944086346894] [[32minfo[0m] [NFC.LAB] ops=29 fail=0 tag=0 ndef_ok=0
+[944086346904] [[32minfo[0m] [NFC.LAB] ops=30 fail=0 tag=0 ndef_ok=0
+[944086346914] [[32minfo[0m] [NFC.LAB] ops=31 fail=0 tag=0 ndef_ok=0
+[944086346934] [[32minfo[0m] [NFC.LAB] ops=32 fail=0 tag=0 ndef_ok=0
+[944086346944] [[32minfo[0m] [NFC.LAB] ops=33 fail=0 tag=0 ndef_ok=0
+[944086346954] [[32minfo[0m] [NFC.LAB] ops=34 fail=0 tag=0 ndef_ok=0
+[944086346974] [[32minfo[0m] [NFC.LAB] ops=36 fail=0 tag=0 ndef_ok=0
+[944086346994] [[32minfo[0m] [NFC.LAB] ops=37 fail=0 tag=0 ndef_ok=0
+[944086347014] [[32minfo[0m] [NFC.LAB] ops=39 fail=0 tag=0 ndef_ok=0
+[944086347034] [[32minfo[0m] [NFC.LAB] ops=40 fail=0 tag=0 ndef_ok=0
+[944086347054] [[32minfo[0m] [NFC.LAB] ops=42 fail=0 tag=0 ndef_ok=0
+[944086347074] [[32minfo[0m] [NFC.LAB] ops=43 fail=0 tag=0 ndef_ok=0
+[944086347094] [[32minfo[0m] [NFC.LAB] ops=45 fail=0 tag=0 ndef_ok=0
+[944086347114] [[32minfo[0m] [NFC.LAB] ops=46 fail=0 tag=0 ndef_ok=0
+[944086347134] [[32minfo[0m] [NFC.LAB] ops=48 fail=0 tag=0 ndef_ok=0
+[944086347144] [[32minfo[0m] [NFC.LAB] ops=49 fail=0 tag=0 ndef_ok=0
+[944086347164] [[32minfo[0m] [NFC.LAB] ops=50 fail=0 tag=0 ndef_ok=0
+[944086347174] [[32minfo[0m] [NFC.LAB] ops=51 fail=0 tag=0 ndef_ok=0
+[944086347184] [[32minfo[0m] [NFC.LAB] ops=52 fail=0 tag=0 ndef_ok=0
+[944086347194] [[32minfo[0m] [NFC.LAB] ops=53 fail=0 tag=0 ndef_ok=0
+[944086347214] [[32minfo[0m] [NFC.LAB] ops=54 fail=0 tag=0 ndef_ok=0
+[944086347224] [[32minfo[0m] [NFC.LAB] ops=55 fail=0 tag=0 ndef_ok=0
+[944086347234] [[32minfo[0m] [NFC.LAB] ops=56 fail=0 tag=0 ndef_ok=0
+[944086347254] [[32minfo[0m] [NFC.LAB] ops=57 fail=0 tag=0 ndef_ok=0
+[944086347264] [[32minfo[0m] [NFC.LAB] ops=58 fail=0 tag=0 ndef_ok=0
+[944086347274] [[32minfo[0m] [NFC.LAB] ops=59 fail=0 tag=0 ndef_ok=0
+[944086347294] [[32minfo[0m] [NFC.LAB] ops=60 fail=0 tag=0 ndef_ok=0
+[944086347304] [[32minfo[0m] [NFC.LAB] ops=61 fail=0 tag=0 ndef_ok=0
+[944086347314] [[32minfo[0m] [NFC.LAB] ops=62 fail=0 tag=0 ndef_ok=0
+[944086347334] [[32minfo[0m] [NFC.LAB] ops=63 fail=0 tag=0 ndef_ok=0
+[944086347344] [[32minfo[0m] [NFC.LAB] ops=64 fail=0 tag=0 ndef_ok=0
+[944086347394] [[32minfo[0m] [NFC.LAB] ops=65 fail=0 tag=1 ndef_ok=0
+[944086347454] [[32minfo[0m] [NFC.LAB] ops=66 fail=0 tag=1 ndef_ok=0
+[944086347514] [[32minfo[0m] [NFC.LAB] ops=67 fail=0 tag=1 ndef_ok=0
+[944086347574] [[32minfo[0m] [NFC.LAB] ops=68 fail=0 tag=1 ndef_ok=0
+[944086347624] [[32minfo[0m] [NFC.LAB] ops=69 fail=0 tag=1 ndef_ok=0
+[944086347684] [[32minfo[0m] [NFC.LAB] ops=70 fail=0 tag=1 ndef_ok=0
+[944086347744] [[32minfo[0m] [NFC.LAB] ops=71 fail=0 tag=1 ndef_ok=0
+[944086347804] [[32minfo[0m] [NFC.LAB] ops=72 fail=0 tag=1 ndef_ok=0
+[944086347864] [[32minfo[0m] [NFC.LAB] ops=73 fail=0 tag=1 ndef_ok=0
+[944086347914] [[32minfo[0m] [NFC.LAB] ops=74 fail=0 tag=1 ndef_ok=0
+[944086347974] [[32minfo[0m] [NFC.LAB] ops=75 fail=0 tag=1 ndef_ok=0
+[944086348034] [[32minfo[0m] [NFC.LAB] ops=76 fail=0 tag=1 ndef_ok=0
+[944086348094] [[32minfo[0m] [NFC.LAB] ops=77 fail=0 tag=1 ndef_ok=0
+[944086348144] [[32minfo[0m] [NFC.LAB] ops=78 fail=0 tag=1 ndef_ok=0
+[944086348204] [[32minfo[0m] [NFC.LAB] ops=79 fail=0 tag=1 ndef_ok=0
+[944086348264] [[32minfo[0m] [NFC.LAB] ops=80 fail=0 tag=1 ndef_ok=0
+[944086348324] [[32minfo[0m] [NFC.LAB] ops=81 fail=0 tag=1 ndef_ok=0
+[944086348384] [[32minfo[0m] [NFC.LAB] ops=82 fail=0 tag=1 ndef_ok=0
+[944086348394] [[32minfo[0m] [NFC.LAB] ops=83 fail=0 tag=0 ndef_ok=0
+[944086348414] [[32minfo[0m] [NFC.LAB] ops=84 fail=0 tag=0 ndef_ok=0
+[944086348464] [[32minfo[0m] [NFC.LAB] ops=85 fail=0 tag=1 ndef_ok=0
+[944086348484] [[32minfo[0m] [NFC.LAB] ops=86 fail=1 tag=0 ndef_ok=0
+[944086348504] [[32minfo[0m] [NFC.LAB] ops=87 fail=1 tag=0 ndef_ok=0
+[944086348514] [[32minfo[0m] [NFC.LAB] ops=88 fail=1 tag=0 ndef_ok=0
+[944086348544] [[32minfo[0m] [NFC.LAB] ops=90 fail=1 tag=0 ndef_ok=0
+[944086348555] [[32minfo[0m] [NFC.LAB] ops=91 fail=1 tag=0 ndef_ok=0
+[944086348574] [[32minfo[0m] [NFC.LAB] ops=93 fail=1 tag=0 ndef_ok=0
+[944086348594] [[32minfo[0m] [NFC.LAB] ops=94 fail=1 tag=0 ndef_ok=0
+[944086348624] [[32minfo[0m] [NFC.LAB] ops=97 fail=1 tag=0 ndef_ok=0
+[944086348644] [[32minfo[0m] [NFC.LAB] ops=98 fail=1 tag=0 ndef_ok=0
+[944086348654] [[32minfo[0m] [NFC.LAB] ops=99 fail=1 tag=0 ndef_ok=0
+[944086348664] [[32minfo[0m] [NFC.LAB] ops=100 fail=1 tag=0 ndef_ok=0
+[944086348684] [[32minfo[0m] [NFC.LAB] ops=101 fail=1 tag=0 ndef_ok=0
+[944086348694] [[32minfo[0m] [NFC.LAB] ops=102 fail=1 tag=0 ndef_ok=0
+[944086348704] [[32minfo[0m] [NFC.LAB] ops=103 fail=1 tag=0 ndef_ok=0
+[944086348714] [[32minfo[0m] [NFC.LAB] ops=104 fail=1 tag=0 ndef_ok=0
+[944086348744] [[32minfo[0m] [NFC.LAB] ops=106 fail=1 tag=0 ndef_ok=0
+[944086348755] [[32minfo[0m] [NFC.LAB] ops=107 fail=1 tag=0 ndef_ok=0
+[944086348774] [[32minfo[0m] [NFC.LAB] ops=108 fail=1 tag=0 ndef_ok=0
+[944086348784] [[32minfo[0m] [NFC.LAB] ops=109 fail=1 tag=0 ndef_ok=0
+[944086348794] [[32minfo[0m] [NFC.LAB] ops=110 fail=1 tag=0 ndef_ok=0
+[944086348814] [[32minfo[0m] [NFC.LAB] ops=112 fail=1 tag=0 ndef_ok=0
+[944086348834] [[32minfo[0m] [NFC.LAB] ops=113 fail=1 tag=0 ndef_ok=0
+[944086348864] [[32minfo[0m] [NFC.LAB] ops=115 fail=1 tag=0 ndef_ok=0
+[944086348875] [[32minfo[0m] [NFC.LAB] ops=116 fail=1 tag=0 ndef_ok=0
+[944086348894] [[32minfo[0m] [NFC.LAB] ops=118 fail=1 tag=0 ndef_ok=0
+[944086348915] [[32minfo[0m] [NFC.LAB] ops=119 fail=1 tag=0 ndef_ok=0
+[944086348934] [[32minfo[0m] [NFC.LAB] ops=121 fail=1 tag=0 ndef_ok=0
+[944086348944] [[32minfo[0m] [NFC.LAB] ops=122 fail=1 tag=0 ndef_ok=0
+[944086348964] [[32minfo[0m] [NFC.LAB] ops=123 fail=1 tag=0 ndef_ok=0
+[944086348984] [[32minfo[0m] [NFC.LAB] ops=125 fail=1 tag=0 ndef_ok=0
+[944086348994] [[32minfo[0m] [NFC.LAB] ops=126 fail=1 tag=0 ndef_ok=0
+[944086349014] [[32minfo[0m] [NFC.LAB] ops=127 fail=1 tag=0 ndef_ok=0
+[944086349024] [[32minfo[0m] [NFC.LAB] ops=128 fail=1 tag=0 ndef_ok=0
+[944086349034] [[32minfo[0m] [NFC.LAB] ops=129 fail=1 tag=0 ndef_ok=0
+[944086349054] [[32minfo[0m] [NFC.LAB] ops=130 fail=1 tag=0 ndef_ok=0
+[944086349064] [[32minfo[0m] [NFC.LAB] ops=131 fail=1 tag=0 ndef_ok=0
+[944086349074] [[32minfo[0m] [NFC.LAB] ops=132 fail=1 tag=0 ndef_ok=0
+[944086349104] [[32minfo[0m] [NFC.LAB] ops=134 fail=1 tag=0 ndef_ok=0
+[944086349115] [[32minfo[0m] [NFC.LAB] ops=135 fail=1 tag=0 ndef_ok=0
+[944086349134] [[32minfo[0m] [NFC.LAB] ops=136 fail=1 tag=0 ndef_ok=0
+[944086349144] [[32minfo[0m] [NFC.LAB] ops=137 fail=1 tag=0 ndef_ok=0
+[944086349154] [[32minfo[0m] [NFC.LAB] ops=138 fail=1 tag=0 ndef_ok=0
+[944086349174] [[32minfo[0m] [NFC.LAB] ops=139 fail=1 tag=0 ndef_ok=0
+[944086349184] [[32minfo[0m] [NFC.LAB] ops=140 fail=1 tag=0 ndef_ok=0
+[944086349194] [[32minfo[0m] [NFC.LAB] ops=141 fail=1 tag=0 ndef_ok=0
+[944086349214] [[32minfo[0m] [NFC.LAB] ops=143 fail=1 tag=0 ndef_ok=0
+[944086349235] [[32minfo[0m] [NFC.LAB] ops=144 fail=1 tag=0 ndef_ok=0
+[944086349254] [[32minfo[0m] [NFC.LAB] ops=146 fail=1 tag=0 ndef_ok=0
+[944086349275] [[32minfo[0m] [NFC.LAB] ops=147 fail=1 tag=0 ndef_ok=0
+[944086349294] [[32minfo[0m] [NFC.LAB] ops=149 fail=1 tag=0 ndef_ok=0
+[944086349315] [[32minfo[0m] [NFC.LAB] ops=150 fail=1 tag=0 ndef_ok=0
+[944086349344] [[32minfo[0m] [NFC.LAB] ops=153 fail=1 tag=0 ndef_ok=0
+[944086349354] [[32minfo[0m] [NFC.LAB] ops=154 fail=1 tag=0 ndef_ok=0
+[944086349374] [[32minfo[0m] [NFC.LAB] ops=155 fail=1 tag=0 ndef_ok=0
+[944086349384] [[32minfo[0m] [NFC.LAB] ops=156 fail=1 tag=0 ndef_ok=0
+[944086349394] [[32minfo[0m] [NFC.LAB] ops=157 fail=1 tag=0 ndef_ok=0
+[944086349414] [[32minfo[0m] [NFC.LAB] ops=158 fail=1 tag=0 ndef_ok=0
+[944086349424] [[32minfo[0m] [NFC.LAB] ops=159 fail=1 tag=0 ndef_ok=0
+[944086349435] [[32minfo[0m] [NFC.LAB] ops=160 fail=1 tag=0 ndef_ok=0
+[944086349494] [[32minfo[0m] [NFC.LAB] ops=161 fail=1 tag=0 ndef_ok=0
+[944086349644] [[32minfo[0m] [NFC.LAB] ops=162 fail=1 tag=0 ndef_ok=1
+[944086349704] [[32minfo[0m] [NFC.LAB] ops=163 fail=1 tag=1 ndef_ok=1
+[944086349754] [[32minfo[0m] [NFC.LAB] ops=164 fail=1 tag=1 ndef_ok=1
+[944086349814] [[32minfo[0m] [NFC.LAB] ops=165 fail=1 tag=1 ndef_ok=1
+[944086349874] [[32minfo[0m] [NFC.LAB] ops=166 fail=1 tag=1 ndef_ok=1
+[944086349934] [[32minfo[0m] [NFC.LAB] ops=167 fail=1 tag=1 ndef_ok=1
+[944086349994] [[32minfo[0m] [NFC.LAB] ops=168 fail=1 tag=1 ndef_ok=1
+[944086350044] [[32minfo[0m] [NFC.LAB] ops=169 fail=1 tag=1 ndef_ok=1
+[944086350104] [[32minfo[0m] [NFC.LAB] ops=170 fail=1 tag=1 ndef_ok=1
+[944086350164] [[32minfo[0m] [NFC.LAB] ops=171 fail=1 tag=1 ndef_ok=1
+[944086350224] [[32minfo[0m] [NFC.LAB] ops=172 fail=1 tag=1 ndef_ok=1
+[944086350274] [[32minfo[0m] [NFC.LAB] ops=173 fail=1 tag=1 ndef_ok=1
+[944086350334] [[32minfo[0m] [NFC.LAB] ops=174 fail=1 tag=1 ndef_ok=1
+[944086350394] [[32minfo[0m] [NFC.LAB] ops=175 fail=1 tag=1 ndef_ok=1
+[944086350454] [[32minfo[0m] [NFC.LAB] ops=176 fail=1 tag=1 ndef_ok=1
+[944086350514] [[32minfo[0m] [NFC.LAB] ops=177 fail=1 tag=1 ndef_ok=1
+[944086350574] [[32minfo[0m] [NFC.LAB] ops=178 fail=1 tag=1 ndef_ok=1
+[944086350624] [[32minfo[0m] [NFC.LAB] ops=179 fail=1 tag=1 ndef_ok=1
+[944086350684] [[32minfo[0m] [NFC.LAB] ops=180 fail=1 tag=1 ndef_ok=1
+I (10698) SystemInfo: free sram: 203331 minimal sram: 202163
+[944086350744] [[32minfo[0m] [NFC.LAB] ops=181 fail=1 tag=1 ndef_ok=1
+[944086350804] [[32minfo[0m] [NFC.LAB] ops=182 fail=1 tag=1 ndef_ok=1
+[944086350854] [[32minfo[0m] [NFC.LAB] ops=183 fail=1 tag=1 ndef_ok=1
+[944086350914] [[32minfo[0m] [NFC.LAB] ops=184 fail=1 tag=1 ndef_ok=1
+[944086350974] [[32minfo[0m] [NFC.LAB] ops=185 fail=1 tag=1 ndef_ok=1
+[944086351034] [[32minfo[0m] [NFC.LAB] ops=186 fail=1 tag=1 ndef_ok=1
+[944086351044] [[32minfo[0m] [NFC.LAB] ops=187 fail=1 tag=0 ndef_ok=1
+[944086351074] [[32minfo[0m] [NFC.LAB] ops=189 fail=1 tag=0 ndef_ok=1
+[944086351104] [[32minfo[0m] [NFC.LAB] ops=191 fail=1 tag=0 ndef_ok=1
+[944086351114] [[32minfo[0m] [NFC.LAB] ops=192 fail=1 tag=0 ndef_ok=1
+[944086351144] [[32minfo[0m] [NFC.LAB] ops=194 fail=1 tag=0 ndef_ok=1
+[944086351154] [[32minfo[0m] [NFC.LAB] ops=195 fail=1 tag=0 ndef_ok=1
+[944086351184] [[32minfo[0m] [NFC.LAB] ops=198 fail=1 tag=0 ndef_ok=1
+[944086351204] [[32minfo[0m] [NFC.LAB] ops=199 fail=1 tag=0 ndef_ok=1
+[944086351224] [[32minfo[0m] [NFC.LAB] ops=201 fail=1 tag=0 ndef_ok=1
+[944086351235] [[32minfo[0m] [NFC.LAB] ops=202 fail=1 tag=0 ndef_ok=1
+[944086351254] [[32minfo[0m] [NFC.LAB] ops=203 fail=1 tag=0 ndef_ok=1
+[944086351264] [[32minfo[0m] [NFC.LAB] ops=204 fail=1 tag=0 ndef_ok=1
+[944086351275] [[32minfo[0m] [NFC.LAB] ops=205 fail=1 tag=0 ndef_ok=1
+[944086351304] [[32minfo[0m] [NFC.LAB] ops=207 fail=1 tag=0 ndef_ok=0
+[944086351315] [[32minfo[0m] [NFC.LAB] ops=208 fail=1 tag=0 ndef_ok=0
+[944086351344] [[32minfo[0m] [NFC.LAB] ops=210 fail=1 tag=0 ndef_ok=0
+[944086351355] [[32minfo[0m] [NFC.LAB] ops=211 fail=1 tag=0 ndef_ok=0
+[944086351374] [[32minfo[0m] [NFC.LAB] ops=212 fail=1 tag=0 ndef_ok=0
+[944086351384] [[32minfo[0m] [NFC.LAB] ops=213 fail=1 tag=0 ndef_ok=0
+[944086351395] [[32minfo[0m] [NFC.LAB] ops=214 fail=1 tag=0 ndef_ok=0
+[944086351424] [[32minfo[0m] [NFC.LAB] ops=216 fail=1 tag=0 ndef_ok=0
+[944086351434] [[32minfo[0m] [NFC.LAB] ops=217 fail=1 tag=0 ndef_ok=0
+[944086351464] [[32minfo[0m] [NFC.LAB] ops=219 fail=1 tag=0 ndef_ok=0
+[944086351474] [[32minfo[0m] [NFC.LAB] ops=220 fail=1 tag=0 ndef_ok=0
+[944086351494] [[32minfo[0m] [NFC.LAB] ops=221 fail=1 tag=0 ndef_ok=0
+[944086351504] [[32minfo[0m] [NFC.LAB] ops=222 fail=1 tag=0 ndef_ok=0
+[944086351515] [[32minfo[0m] [NFC.LAB] ops=223 fail=1 tag=0 ndef_ok=0
+[944086351544] [[32minfo[0m] [NFC.LAB] ops=225 fail=1 tag=0 ndef_ok=0
+[944086351554] [[32minfo[0m] [NFC.LAB] ops=226 fail=1 tag=0 ndef_ok=0
+[944086351584] [[32minfo[0m] [NFC.LAB] ops=228 fail=1 tag=0 ndef_ok=0
+[944086351595] [[32minfo[0m] [NFC.LAB] ops=229 fail=1 tag=0 ndef_ok=0
+[944086351614] [[32minfo[0m] [NFC.LAB] ops=231 fail=1 tag=0 ndef_ok=0
+[944086351635] [[32minfo[0m] [NFC.LAB] ops=232 fail=1 tag=0 ndef_ok=0
+[944086351664] [[32minfo[0m] [NFC.LAB] ops=234 fail=1 tag=0 ndef_ok=0
+[944086351675] [[32minfo[0m] [NFC.LAB] ops=235 fail=1 tag=0 ndef_ok=0
+[944086351694] [[32minfo[0m] [NFC.LAB] ops=237 fail=1 tag=0 ndef_ok=0
+[944086351714] [[32minfo[0m] [NFC.LAB] ops=238 fail=1 tag=0 ndef_ok=0
+[944086351734] [[32minfo[0m] [NFC.LAB] ops=240 fail=1 tag=0 ndef_ok=0
+[944086351755] [[32minfo[0m] [NFC.LAB] ops=241 fail=1 tag=0 ndef_ok=0
+[944086351784] [[32minfo[0m] [NFC.LAB] ops=244 fail=1 tag=0 ndef_ok=0
+[944086351804] [[32minfo[0m] [NFC.LAB] ops=245 fail=1 tag=0 ndef_ok=0
+[944086351814] [[32minfo[0m] [NFC.LAB] ops=246 fail=1 tag=0 ndef_ok=0
+[944086351824] [[32minfo[0m] [NFC.LAB] ops=247 fail=1 tag=0 ndef_ok=0
+[944086351835] [[32minfo[0m] [NFC.LAB] ops=248 fail=1 tag=0 ndef_ok=0
+[944086351854] [[32minfo[0m] [NFC.LAB] ops=249 fail=1 tag=0 ndef_ok=0
+[944086351864] [[32minfo[0m] [NFC.LAB] ops=250 fail=1 tag=0 ndef_ok=0
+[944086351874] [[32minfo[0m] [NFC.LAB] ops=251 fail=1 tag=0 ndef_ok=0
+[944086351904] [[32minfo[0m] [NFC.LAB] ops=253 fail=1 tag=0 ndef_ok=0
+[944086351914] [[32minfo[0m] [NFC.LAB] ops=254 fail=1 tag=0 ndef_ok=0
+[944086351934] [[32minfo[0m] [NFC.LAB] ops=255 fail=1 tag=0 ndef_ok=0
+[944086351944] [[32minfo[0m] [NFC.LAB] ops=256 fail=1 tag=0 ndef_ok=0
+[944086351954] [[32minfo[0m] [NFC.LAB] ops=257 fail=1 tag=0 ndef_ok=0
+[944086351974] [[32minfo[0m] [NFC.LAB] ops=258 fail=1 tag=0 ndef_ok=0
+[944086351984] [[32minfo[0m] [NFC.LAB] ops=259 fail=1 tag=0 ndef_ok=0
+[944086352034] [[32minfo[0m] [NFC.LAB] ops=260 fail=1 tag=1 ndef_ok=0
+[944086352094] [[32minfo[0m] [NFC.LAB] ops=261 fail=1 tag=1 ndef_ok=0
+[944086352154] [[32minfo[0m] [NFC.LAB] ops=262 fail=1 tag=1 ndef_ok=0
+[944086352214] [[32minfo[0m] [NFC.LAB] ops=263 fail=1 tag=1 ndef_ok=0
+[944086352274] [[32minfo[0m] [NFC.LAB] ops=264 fail=1 tag=1 ndef_ok=0
+[944086352334] [[32minfo[0m] [NFC.LAB] ops=265 fail=1 tag=1 ndef_ok=0
+[944086352394] [[32minfo[0m] [NFC.LAB] ops=266 fail=1 tag=1 ndef_ok=0
+[944086352444] [[32minfo[0m] [NFC.LAB] ops=267 fail=1 tag=1 ndef_ok=0
+[944086352504] [[32minfo[0m] [NFC.LAB] ops=268 fail=1 tag=1 ndef_ok=0
+[944086352564] [[32minfo[0m] [NFC.LAB] ops=269 fail=1 tag=1 ndef_ok=0
+[944086352624] [[32minfo[0m] [NFC.LAB] ops=270 fail=1 tag=1 ndef_ok=0
+[944086352684] [[32minfo[0m] [NFC.LAB] ops=271 fail=1 tag=1 ndef_ok=0
+[944086352734] [[32minfo[0m] [NFC.LAB] ops=272 fail=1 tag=1 ndef_ok=0
+[944086352794] [[32minfo[0m] [NFC.LAB] ops=273 fail=1 tag=1 ndef_ok=0
+[944086352854] [[32minfo[0m] [NFC.LAB] ops=274 fail=1 tag=1 ndef_ok=0
+[944086352914] [[32minfo[0m] [NFC.LAB] ops=275 fail=1 tag=1 ndef_ok=0
+[944086352934] [[32minfo[0m] [NFC.LAB] ops=276 fail=2 tag=0 ndef_ok=0
+[944086352954] [[32minfo[0m] [NFC.LAB] ops=277 fail=2 tag=0 ndef_ok=0
+[944086352984] [[32minfo[0m] [NFC.LAB] ops=279 fail=2 tag=0 ndef_ok=0
+[944086352995] [[32minfo[0m] [NFC.LAB] ops=280 fail=2 tag=0 ndef_ok=0
+[944086353024] [[32minfo[0m] [NFC.LAB] ops=282 fail=2 tag=0 ndef_ok=0
+[944086353034] [[32minfo[0m] [NFC.LAB] ops=283 fail=2 tag=0 ndef_ok=0
+[944086353064] [[32minfo[0m] [NFC.LAB] ops=286 fail=2 tag=0 ndef_ok=0
+[944086353084] [[32minfo[0m] [NFC.LAB] ops=287 fail=2 tag=0 ndef_ok=0
+[944086353104] [[32minfo[0m] [NFC.LAB] ops=289 fail=2 tag=0 ndef_ok=0
+[944086353124] [[32minfo[0m] [NFC.LAB] ops=290 fail=2 tag=0 ndef_ok=0
+[944086353144] [[32minfo[0m] [NFC.LAB] ops=292 fail=2 tag=0 ndef_ok=0
+[944086353154] [[32minfo[0m] [NFC.LAB] ops=293 fail=2 tag=0 ndef_ok=0
+[944086353184] [[32minfo[0m] [NFC.LAB] ops=295 fail=2 tag=0 ndef_ok=0
+[944086353194] [[32minfo[0m] [NFC.LAB] ops=296 fail=2 tag=0 ndef_ok=0
+[944086353214] [[32minfo[0m] [NFC.LAB] ops=297 fail=2 tag=0 ndef_ok=0
+[944086353224] [[32minfo[0m] [NFC.LAB] ops=298 fail=2 tag=0 ndef_ok=0
+[944086353234] [[32minfo[0m] [NFC.LAB] ops=299 fail=2 tag=0 ndef_ok=0
+[944086353254] [[32minfo[0m] [NFC.LAB] ops=300 fail=2 tag=0 ndef_ok=0
+[944086353264] [[32minfo[0m] [NFC.LAB] ops=301 fail=2 tag=0 ndef_ok=0
+[944086353274] [[32minfo[0m] [NFC.LAB] ops=302 fail=2 tag=0 ndef_ok=0
+[944086353304] [[32minfo[0m] [NFC.LAB] ops=304 fail=2 tag=0 ndef_ok=0
+[944086353314] [[32minfo[0m] [NFC.LAB] ops=305 fail=2 tag=0 ndef_ok=0
+[944086353334] [[32minfo[0m] [NFC.LAB] ops=307 fail=2 tag=0 ndef_ok=0
+[944086353355] [[32minfo[0m] [NFC.LAB] ops=308 fail=2 tag=0 ndef_ok=0
+[944086353374] [[32minfo[0m] [NFC.LAB] ops=310 fail=2 tag=0 ndef_ok=0
+[944086353395] [[32minfo[0m] [NFC.LAB] ops=311 fail=2 tag=0 ndef_ok=0
+[944086353424] [[32minfo[0m] [NFC.LAB] ops=313 fail=2 tag=0 ndef_ok=0
+[944086353435] [[32minfo[0m] [NFC.LAB] ops=314 fail=2 tag=0 ndef_ok=0
+[944086353464] [[32minfo[0m] [NFC.LAB] ops=316 fail=2 tag=0 ndef_ok=0
+[944086353475] [[32minfo[0m] [NFC.LAB] ops=317 fail=2 tag=0 ndef_ok=0
+[944086353494] [[32minfo[0m] [NFC.LAB] ops=319 fail=2 tag=0 ndef_ok=0
+[944086353515] [[32minfo[0m] [NFC.LAB] ops=320 fail=2 tag=0 ndef_ok=0
+[944086353544] [[32minfo[0m] [NFC.LAB] ops=322 fail=2 tag=0 ndef_ok=0
+[944086353554] [[32minfo[0m] [NFC.LAB] ops=323 fail=2 tag=0 ndef_ok=0
+[944086353574] [[32minfo[0m] [NFC.LAB] ops=325 fail=2 tag=0 ndef_ok=0
+[944086353594] [[32minfo[0m] [NFC.LAB] ops=326 fail=2 tag=0 ndef_ok=0
+[944086353614] [[32minfo[0m] [NFC.LAB] ops=328 fail=2 tag=0 ndef_ok=0
+[944086353624] [[32minfo[0m] [NFC.LAB] ops=329 fail=2 tag=0 ndef_ok=0
+[944086353644] [[32minfo[0m] [NFC.LAB] ops=330 fail=2 tag=0 ndef_ok=0
+[944086353664] [[32minfo[0m] [NFC.LAB] ops=332 fail=2 tag=0 ndef_ok=0
+[944086353674] [[32minfo[0m] [NFC.LAB] ops=333 fail=2 tag=0 ndef_ok=0
+[944086353694] [[32minfo[0m] [NFC.LAB] ops=334 fail=2 tag=0 ndef_ok=0
+[944086353704] [[32minfo[0m] [NFC.LAB] ops=335 fail=2 tag=0 ndef_ok=0
+[944086353715] [[32minfo[0m] [NFC.LAB] ops=336 fail=2 tag=0 ndef_ok=0
+[944086353734] [[32minfo[0m] [NFC.LAB] ops=337 fail=2 tag=0 ndef_ok=0
+[944086353744] [[32minfo[0m] [NFC.LAB] ops=338 fail=2 tag=0 ndef_ok=0
+[944086353755] [[32minfo[0m] [NFC.LAB] ops=339 fail=2 tag=0 ndef_ok=0
+[944086353784] [[32minfo[0m] [NFC.LAB] ops=341 fail=2 tag=0 ndef_ok=0
+[944086353794] [[32minfo[0m] [NFC.LAB] ops=342 fail=2 tag=0 ndef_ok=0
+[944086353814] [[32minfo[0m] [NFC.LAB] ops=343 fail=2 tag=0 ndef_ok=0
+[944086353824] [[32minfo[0m] [NFC.LAB] ops=344 fail=2 tag=0 ndef_ok=0
+[944086353835] [[32minfo[0m] [NFC.LAB] ops=345 fail=2 tag=0 ndef_ok=0
+[944086353854] [[32minfo[0m] [NFC.LAB] ops=346 fail=2 tag=0 ndef_ok=0
+[944086353864] [[32minfo[0m] [NFC.LAB] ops=347 fail=2 tag=0 ndef_ok=0
+[944086353874] [[32minfo[0m] [NFC.LAB] ops=348 fail=2 tag=0 ndef_ok=0
+[944086353904] [[32minfo[0m] [NFC.LAB] ops=350 fail=2 tag=0 ndef_ok=0
+[944086353914] [[32minfo[0m] [NFC.LAB] ops=351 fail=2 tag=0 ndef_ok=0
+[944086353934] [[32minfo[0m] [NFC.LAB] ops=353 fail=2 tag=0 ndef_ok=0
+[944086353955] [[32minfo[0m] [NFC.LAB] ops=354 fail=2 tag=0 ndef_ok=0
+[944086353974] [[32minfo[0m] [NFC.LAB] ops=356 fail=2 tag=0 ndef_ok=0
+[944086353994] [[32minfo[0m] [NFC.LAB] ops=357 fail=2 tag=0 ndef_ok=0
+[944086354024] [[32minfo[0m] [NFC.LAB] ops=359 fail=2 tag=0 ndef_ok=0
+[944086354035] [[32minfo[0m] [NFC.LAB] ops=360 fail=2 tag=0 ndef_ok=0
+[944086354054] [[32minfo[0m] [NFC.LAB] ops=362 fail=2 tag=0 ndef_ok=0
+[944086354064] [[32minfo[0m] [NFC.LAB] ops=363 fail=2 tag=0 ndef_ok=0
+[944086354084] [[32minfo[0m] [NFC.LAB] ops=364 fail=2 tag=0 ndef_ok=0
+[944086354094] [[32minfo[0m] [NFC.LAB] ops=365 fail=2 tag=0 ndef_ok=0
+[944086354104] [[32minfo[0m] [NFC.LAB] ops=366 fail=2 tag=0 ndef_ok=0
+[944086354124] [[32minfo[0m] [NFC.LAB] ops=367 fail=2 tag=0 ndef_ok=0
+[944086354144] [[32minfo[0m] [NFC.LAB] ops=369 fail=2 tag=0 ndef_ok=0
+[944086354155] [[32minfo[0m] [NFC.LAB] ops=370 fail=2 tag=0 ndef_ok=0
+[944086354174] [[32minfo[0m] [NFC.LAB] ops=371 fail=2 tag=0 ndef_ok=0
+[944086354184] [[32minfo[0m] [NFC.LAB] ops=372 fail=2 tag=0 ndef_ok=0
+[944086354194] [[32minfo[0m] [NFC.LAB] ops=373 fail=2 tag=0 ndef_ok=0
+[944086354224] [[32minfo[0m] [NFC.LAB] ops=375 fail=2 tag=0 ndef_ok=0
+[944086354234] [[32minfo[0m] [NFC.LAB] ops=376 fail=2 tag=0 ndef_ok=0
+[944086354264] [[32minfo[0m] [NFC.LAB] ops=378 fail=2 tag=0 ndef_ok=0
+[944086354275] [[32minfo[0m] [NFC.LAB] ops=379 fail=2 tag=0 ndef_ok=0
+[944086354294] [[32minfo[0m] [NFC.LAB] ops=380 fail=2 tag=0 ndef_ok=0
+[944086354304] [[32minfo[0m] [NFC.LAB] ops=381 fail=2 tag=0 ndef_ok=0
+[944086354314] [[32minfo[0m] [NFC.LAB] ops=382 fail=2 tag=0 ndef_ok=0
+[944086354334] [[32minfo[0m] [NFC.LAB] ops=384 fail=2 tag=0 ndef_ok=0
+[944086354355] [[32minfo[0m] [NFC.LAB] ops=385 fail=2 tag=0 ndef_ok=0
+[944086354374] [[32minfo[0m] [NFC.LAB] ops=387 fail=2 tag=0 ndef_ok=0
+[944086354395] [[32minfo[0m] [NFC.LAB] ops=388 fail=2 tag=0 ndef_ok=0
+[944086354424] [[32minfo[0m] [NFC.LAB] ops=390 fail=2 tag=0 ndef_ok=0
+[944086354435] [[32minfo[0m] [NFC.LAB] ops=391 fail=2 tag=0 ndef_ok=0
+[944086354454] [[32minfo[0m] [NFC.LAB] ops=393 fail=2 tag=0 ndef_ok=0
+[944086354475] [[32minfo[0m] [NFC.LAB] ops=394 fail=2 tag=0 ndef_ok=0
+[944086354504] [[32minfo[0m] [NFC.LAB] ops=396 fail=2 tag=0 ndef_ok=0
+[944086354514] [[32minfo[0m] [NFC.LAB] ops=397 fail=2 tag=0 ndef_ok=0
+[944086354534] [[32minfo[0m] [NFC.LAB] ops=399 fail=2 tag=0 ndef_ok=0
+[944086354554] [[32minfo[0m] [NFC.LAB] ops=400 fail=2 tag=0 ndef_ok=0
+[944086354574] [[32minfo[0m] [NFC.LAB] ops=402 fail=2 tag=0 ndef_ok=0
+[944086354595] [[32minfo[0m] [NFC.LAB] ops=403 fail=2 tag=0 ndef_ok=0
+[944086354624] [[32minfo[0m] [NFC.LAB] ops=406 fail=2 tag=0 ndef_ok=0
+[944086354644] [[32minfo[0m] [NFC.LAB] ops=407 fail=2 tag=0 ndef_ok=0
+[944086354664] [[32minfo[0m] [NFC.LAB] ops=409 fail=2 tag=0 ndef_ok=0
+[944086354674] [[32minfo[0m] [NFC.LAB] ops=410 fail=2 tag=0 ndef_ok=0
+[944086354694] [[32minfo[0m] [NFC.LAB] ops=411 fail=2 tag=0 ndef_ok=0
+[944086354704] [[32minfo[0m] [NFC.LAB] ops=412 fail=2 tag=0 ndef_ok=0
+[944086354714] [[32minfo[0m] [NFC.LAB] ops=413 fail=2 tag=0 ndef_ok=0
+[944086354744] [[32minfo[0m] [NFC.LAB] ops=415 fail=2 tag=0 ndef_ok=0
+[944086354754] [[32minfo[0m] [NFC.LAB] ops=416 fail=2 tag=0 ndef_ok=0
+[944086354774] [[32minfo[0m] [NFC.LAB] ops=417 fail=2 tag=0 ndef_ok=0
+[944086354784] [[32minfo[0m] [NFC.LAB] ops=418 fail=2 tag=0 ndef_ok=0
+[944086354794] [[32minfo[0m] [NFC.LAB] ops=419 fail=2 tag=0 ndef_ok=0
+[944086354814] [[32minfo[0m] [NFC.LAB] ops=420 fail=2 tag=0 ndef_ok=0
+[944086354824] [[32minfo[0m] [NFC.LAB] ops=421 fail=2 tag=0 ndef_ok=0
+[944086354835] [[32minfo[0m] [NFC.LAB] ops=422 fail=2 tag=0 ndef_ok=0
+[944086354864] [[32minfo[0m] [NFC.LAB] ops=424 fail=2 tag=0 ndef_ok=0
+[944086354875] [[32minfo[0m] [NFC.LAB] ops=425 fail=2 tag=0 ndef_ok=0
+[944086354894] [[32minfo[0m] [NFC.LAB] ops=427 fail=2 tag=0 ndef_ok=0
+[944086354914] [[32minfo[0m] [NFC.LAB] ops=428 fail=2 tag=0 ndef_ok=0
+[944086354934] [[32minfo[0m] [NFC.LAB] ops=430 fail=2 tag=0 ndef_ok=0
+[944086354954] [[32minfo[0m] [NFC.LAB] ops=431 fail=2 tag=0 ndef_ok=0
+[944086354984] [[32minfo[0m] [NFC.LAB] ops=434 fail=2 tag=0 ndef_ok=0
+[944086354994] [[32minfo[0m] [NFC.LAB] ops=435 fail=2 tag=0 ndef_ok=0
+[944086355014] [[32minfo[0m] [NFC.LAB] ops=436 fail=2 tag=0 ndef_ok=0
+[944086355024] [[32minfo[0m] [NFC.LAB] ops=437 fail=2 tag=0 ndef_ok=0
+[944086355035] [[32minfo[0m] [NFC.LAB] ops=438 fail=2 tag=0 ndef_ok=0
+[944086355054] [[32minfo[0m] [NFC.LAB] ops=439 fail=2 tag=0 ndef_ok=0
+[944086355064] [[32minfo[0m] [NFC.LAB] ops=440 fail=2 tag=0 ndef_ok=0
+[944086355075] [[32minfo[0m] [NFC.LAB] ops=441 fail=2 tag=0 ndef_ok=0
+[944086355104] [[32minfo[0m] [NFC.LAB] ops=443 fail=2 tag=0 ndef_ok=0
+[944086355114] [[32minfo[0m] [NFC.LAB] ops=444 fail=2 tag=0 ndef_ok=0
+[944086355144] [[32minfo[0m] [NFC.LAB] ops=446 fail=2 tag=0 ndef_ok=0
+[944086355154] [[32minfo[0m] [NFC.LAB] ops=447 fail=2 tag=0 ndef_ok=0
+[944086355174] [[32minfo[0m] [NFC.LAB] ops=449 fail=2 tag=0 ndef_ok=0
+[944086355195] [[32minfo[0m] [NFC.LAB] ops=450 fail=2 tag=0 ndef_ok=0
+[944086355214] [[32minfo[0m] [NFC.LAB] ops=452 fail=2 tag=0 ndef_ok=0
+[944086355235] [[32minfo[0m] [NFC.LAB] ops=453 fail=2 tag=0 nd

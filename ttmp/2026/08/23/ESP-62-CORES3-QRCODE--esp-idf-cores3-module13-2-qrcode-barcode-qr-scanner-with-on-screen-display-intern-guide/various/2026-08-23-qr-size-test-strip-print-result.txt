@@ -1,0 +1,8 @@
+Almanach remote print result
+render endpoint: https://almanach.crib.scapegoat.dev/api/render-and-print
+layout: 2026-08-23-qr-size-test-strip.yaml
+width: 384
+height: 1425
+printed: true
+printer response: ok=true, segments=2
+payloads: ALM-QR-064, ALM-QR-080, ALM-QR-096, ALM-QR-112, ALM-QR-128, ALM-QR-144, ALM-QR-160

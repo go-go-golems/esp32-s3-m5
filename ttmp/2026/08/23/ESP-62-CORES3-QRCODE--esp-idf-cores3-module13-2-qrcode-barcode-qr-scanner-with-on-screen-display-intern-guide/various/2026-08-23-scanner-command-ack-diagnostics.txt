@@ -1,0 +1,36 @@
+===== light =====
+qr light on
+I (48482) qr_engine: tx 4 bytes
+I (48482) qr_engine: 0x3fcac760   21 62 41 03                                       |!bA.|
+W (48687) qr_engine: ack timeout: got=0 expected=5
+light: timeout
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>  
+cores3-qr>  ===== auto =====
+qr mode auto
+I (54657) qr_engine: tx 4 bytes
+I (54657) qr_engine: 0x3fcac760   21 61 41 02                                       |!aA.|
+W (54862) qr_engine: ack timeout: got=0 expected=5
+mode: timeout
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>  
+cores3-qr>  ===== stop =====
+qr stop
+I (60832) qr_engine: tx 3 bytes
+I (60832) qr_engine: 0x3c06ecd8   32 75 02                                          |2u.|
+W (60987) qr_engine: ack timeout: got=0 expected=5
+stop: timeout
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>  
+cores3-qr>  ===== trig =====
+qr trig pulse
+I (66957) qr_module: TRIG pulse: LOW 100ms -> HIGH
+trig-pulse: ok
+cores3-qr>  
+cores3-qr>  ===== start =====
+qr start
+I (73088) qr_engine: tx 3 bytes
+I (73088) qr_engine: 0x3c06ecdc   32 75 01                                          |2u.|
+start: ok (write accepted; no ACK defined)
+cores3-qr>  
+cores3-qr>  

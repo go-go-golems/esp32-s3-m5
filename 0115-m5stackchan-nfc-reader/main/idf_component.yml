@@ -1,0 +1,10 @@
+## IDF Component Manager Manifest File
+## ESP-60-M5STACKCHAN-NFC Phase 1.
+## Per AGENTS.md, component deps go HERE (main/), not at the project root
+## (a root manifest is ignored and yields "Failed to resolve component ... unknown name").
+dependencies:
+  idf:
+    version: '>=5.5.2'
+  # esp_console + linenoise come with ESP-IDF (no component-manager entry needed).
+  # The new I2C master driver (driver/i2c_master.h) is in the `driver` / `esp_driver_i2c`
+  # component, provided by ESP-IDF; we declare the PRIV_REQUIRES in CMakeLists.txt.

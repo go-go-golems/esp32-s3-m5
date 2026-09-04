@@ -1,0 +1,5 @@
+qr trig pulse
+I (13906) qr_module: TRIG pulse: LOW 100ms -> HIGH
+trig-pulse: ok
+cores3-qr>
+cores3-qr>

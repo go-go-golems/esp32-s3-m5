@@ -1,0 +1,225 @@
+Module Gateway H2
+  SKU: M141
+
+
+
+
+  Description
+
+The Module Gateway H2 is a stackable gateway development module based on the ESP32-H2-MINI-1 module, specifically designed
+for the M5 series hosts. It features a low-power, RISC-V-based 32-bit single-core MCU and supports Zigbee, Thread, and the Thread-
+based Matter interconnect protocol. The module integrates IEEE 802.15.4 wireless communication capabilities, enabling it to work
+with M5 hosts to build Matter over Thread end devices, facilitating interoperability across multiple ecosystems.
+
+
+                                                                                                        1/7 | Update Time: 2026-05-15
+Additionally, the Module Gateway H2 includes a hardware encryption engine, meeting the data security requirements of high-demand
+IoT applications. The module is equipped with a DIP switch, allowing users to flexibly switch communication interface modes, and it
+also provides a standard program download interface for easy firmware burning and debugging. It supports multi-module stacking
+expansion, making it suitable for applications such as smart homes, environmental monitoring, sensor networks, and low-power
+wireless communication nodes, helping developers quickly prototype and develop products.
+
+
+
+  Features
+
+   Support for wireless communication protocols such as Zigbee, Thread, and Matter
+   Integrated IEEE 802.15.4 technology
+   DIP switch configuration
+   Hardware encryption support
+   Stackable expansion
+   Low power consumption
+   Development platforms:
+       Arduino IDE
+       ESP-IDF
+
+
+
+  Includes
+
+   1 x Module Gateway H2
+
+
+
+  Applications
+
+   Smart home
+   Industrial automation
+   Healthcare
+   Consumer electronics
+   Smart agriculture
+
+
+
+  Specifications
+
+
+
+
+                                                                                                       2/7 | Update Time: 2026-05-15
+       Specification                                                   Parameters
+
+
+           SoC                   Built-in ESP32-H2 chip, RISC-V 32-bit single-core processor, up to 96 MHz @IEEE 802.15.4
+
+
+           Flash                                                           2MB
+
+
+         Antenna                                                  Onboard PCB antenna
+
+
+   Supported Protocols                            IEEE 802.15.4 (including Zigbee 3.0, Thread 1.3, Matter)
+
+
+                                                            Standby current: DC3.3V/8.55mA
+   Power Consumption
+                                                 Operating current: Thread networking: DC3.3V/18.35mA
+
+
+        DIP Switch                   8-bit DIP switch for interface switching (UART/SPI) and wireless function control
+
+
+  Operating Temperature                                                  0 ~ 40°C
+
+
+       Product Size                                                54.0 x 54.0 x 13.1mm
+
+
+      Product Weight                                                       11.7g
+
+
+       Package Size                                               132.0 x 95.0 x 16.0mm
+
+
+       Gross Weight                                                        25.3g
+
+
+
+
+  Learn
+
+  Downloading Programs
+Use the ESP32 Downloader to download programs to the ESP32-H2.
+
+
+
+
+  Certifications
+
+   RCM/TELEC/CE/FCC/IC/BQB certifications
+
+
+
+  Schematics
+
+   Module Gateway H2 Schematic PDF
+
+
+
+
+                                                                                                    3/7 | Update Time: 2026-05-15
+PinMap
+
+M5-Bus
+
+
+
+
+         4/7 | Update Time: 2026-05-15
+  PIN       LEFT   RIGHT      PIN
+
+
+  GND        1       2        RXD
+
+
+  GND        3       4
+
+
+  GND        5       6
+
+
+SPI_MOSI     7       8     BT_PRIORITY
+
+
+SPI_MISO     9      10
+
+
+ SPI_CLK    11      12        3V3
+
+
+            13      14
+
+
+   G9       15      16
+
+
+            17      18
+
+
+            19      20
+
+
+BT_ACTIVE   21      22       H2-EN
+
+
+ SPI_CS     23      24     WL_ACTIVE
+
+
+ HPWR       25      26
+
+
+ HPWR       27      28         5V
+
+
+ HPWR       29      30        BAT
+
+
+
+
+ Model Size
+
+
+
+
+                                         5/7 | Update Time: 2026-05-15
+Datasheets
+
+ESP32-H2-MINI-1 Module Datasheet
+
+
+
+Softwares
+
+Arduino
+Module Gateway H2 Arduino Tutorial
+
+
+UiFlow2
+Module Gateway H2 UiFlow2 Docs
+
+
+ESP-IDF
+ESP Thread Border Router Guide
+ESP Zigbee Gateway Guide
+ESP Zigbee NCP Guide
+ESP32-H2 ESP-IDF Docs
+ESP Zigbee SDK
+ESP Thread Border Router SDK
+
+
+
+
+                                     6/7 | Update Time: 2026-05-15
+  Video
+
+   Module Gateway H2 Product Introduction and Case Demonstration
+
+
+M141_Module_Gateway_H2_video.mp4
+
+
+
+
+                                                                   7/7 | Update Time: 2026-05-15
+

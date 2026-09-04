@@ -1,0 +1,4 @@
+qr start
+started
+cores3-qr>  
+cores3-qr>  

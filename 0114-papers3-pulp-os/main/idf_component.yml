@@ -1,2 +1,6 @@
+# Per-component manifest for PULP OS v2 main. ESP-54 adds espressif/mdns
+# (mDNS moved out of the ESP-IDF 5.x tree into the managed registry).
+# A root-level idf_component.yml would be IGNORED (AGENTS.md).
 dependencies:
-  espressif/esp_websocket_client: "1.3.0"
+  espressif/mdns:
+    version: "~1.2.0"

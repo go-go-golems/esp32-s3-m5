@@ -1,0 +1,2325 @@
+ZBarcode Scanner
+
+User Guide
+(Common)v2.5
+
+
+
+
+                   V2024.05.18
+V2024.05.18
+                                                   Table Of Contents
+1.   Getting Started............................................................................................................................................. 7
+2.   Communication Interface ............................................................................................................................ 9
+     2.1.      Introduction ................................................................................................................................. 9
+     2.2.      RS232-TTL Interface ..................................................................................................................... 9
+          Baud Rate .................................................................... 10
+          RS485 ........................................................................ 12
+          UART Number .................................................................. 12
+     2.3.     USB Serial Port ........................................................................................................................... 13
+     2.4.     USB Keyboard............................................................................................................................. 13
+          USB Country Keyboard Types.................................................... 13
+          Keyboard Style ............................................................... 15
+          Encoded Output Method ........................................................ 16
+          Inter-Keystroke Delay ........................................................ 16
+     2.5.     USB HID-POS .............................................................................................................................. 18
+          Report Define ................................................................ 18
+          HIDPOS Delay ................................................................. 19
+          VID/PID ...................................................................... 20
+3.   Scan Mode ................................................................................................................................................. 21
+     3.1.     Trigger Mode .............................................................................................................................. 21
+          Decoding Command Session Timeout.............................................. 21
+     3.2.     Continuous Mode ...................................................................................................................... 22
+     3.3.     Auto Mode ................................................................................................................................. 23
+     3.4.     Pulse Mode ................................................................................................................................ 23
+          Decode Session Timeout ....................................................... 23
+     3.5.     Sense Mode ............................................................................................................................... 25
+          Sensitivity .................................................................. 25
+          Continue after Good Read...................................................... 26
+          Continue Timeout ............................................................. 27
+
+            Timeout between decode ..................................................... 28
+
+4.   Reading Parameters ................................................................................................................................... 29
+     4.1.     Illumination（LED） .................................................................................................................. 29
+          Enable in Detecting Sense Mode................................................ 30
+          Decode Brightness ............................................................ 31
+     4.2.     Aiming Led ................................................................................................................................. 33
+          Enable in Detecting Sense Mode................................................ 34
+     4.3.     Beep ........................................................................................................................................... 35
+          Good Read Beep ............................................................... 35
+          Good Read Beep Times ......................................................... 35
+          Good Read Beep Type ........................................................... 36
+          Startup Beep ................................................................. 36
+     4.4.     Timeout between Decodes ........................................................................................................ 37
+
+                                                                                                                                                  V2024.05.18
+          Same Barcode ................................................................. 37
+          Ignore Same Barcode Timeout In Sense Mode ..................................... 38
+     4.5.     Multiple Barcode Reading.......................................................................................................... 39
+          The number of multiple barcodes............................................... 39
+          Incomplete Transmission....................................................... 40
+          Incomplete Transmission Timeout............................................... 40
+     4.1.     NFC Reader ................................................................................................................................ 42
+          UID Bytes Order .............................................................. 43
+          Output Format ................................................................ 44
+          Byte Position for Weigend..................................................... 44
+          Card Reading Mode ............................................................ 45
+5.   Data Editing ................................................................................................................................................ 47
+     5.1.      Suffix .......................................................................................................................................... 47
+          Enable/Disable ............................................................... 47
+          Set Barcode Suffix ........................................................... 47
+          Set NFC Suffix ............................................................... 48
+     5.2.     Prefix .......................................................................................................................................... 48
+          Enable/Disable ............................................................... 49
+          Set Barcode Prefix ........................................................... 49
+          Set NFC Prefix ............................................................... 50
+     5.3.     Data Packing............................................................................................................................... 51
+     5.4.     Case Conversion ......................................................................................................................... 53
+6.   Symbologies ............................................................................................................................................... 54
+     6.1.     Global Settings ........................................................................................................................... 54
+          Enable/Disable All Symbologies................................................ 54
+          Enable/Disable 1D Symbologies................................................. 54
+          Enable/Disable 2D Symbologies................................................. 54
+          Video Reverse ................................................................ 55
+     6.2.     2D Symbologies.......................................................................................................................... 56
+          QR Code ...................................................................... 56
+          PDF417 ....................................................................... 57
+          Chinese Sensible Code (HanXin)................................................. 57
+          Data Matrix .................................................................. 57
+          Aztec ........................................................................ 57
+          MicroQR ...................................................................... 57
+          MicroPDF417 .................................................................. 58
+          Grid Matrix .................................................................. 58
+     6.3.     1D Symbologies.......................................................................................................................... 59
+          Code 11 ...................................................................... 59
+          Code 39 ...................................................................... 60
+          Code 93 ...................................................................... 61
+          Code 128 ..................................................................... 62
+          UPC-A ........................................................................ 62
+          UPC-E ........................................................................ 62
+          EAN-8 ........................................................................ 64
+
+                                                                                                                                                    V2024.05.18
+         Codabar ...................................................................... 65
+         Industrial 2 of 5 ............................................................ 66
+         Matrix 2 of 5 ................................................................ 67
+         Interleaved 2 of 5 ........................................................... 68
+         MSI .......................................................................... 69
+         GS1 Databar(Omni-Directional)................................................. 70
+         GS1 Databar(Limited) ......................................................... 70
+         GS1 Databar(Expanded) ........................................................ 71
+         Plessey ...................................................................... 71
+         China Post ................................................................... 72
+         Telepen ...................................................................... 73
+         Character Set ................................................................ 73
+7.   Appendix .................................................................................................................................................... 74
+     Appendix A: Symbology ID Number........................................................................................................... 74
+     Appendix B: CRC Algorithm in Data Packing .............................................................................................. 75
+
+
+
+
+                                                                                                                                                    V2024.05.18
+Revision History
+Date         Version   Description
+2021-05-27   2.0       Adjust PDF417 settings
+2021-06-27   2.1       Refine NFC, Weigand
+2024-05-18             Add NFC config
+
+
+
+
+                                                V2024.05.18
+                                     1. Getting Started
+
+
+About This Guide
+
+     This guide provides programming instruction for barcode scanner device. User can configure the device
+
+by scanning the programming barcodes include in this manual to modify the parameters of the device, which
+
+are communication interface, scan mode, data processing and output format etc.
+
+     The barcode scanner has been properly configured for most applications and can be put into use without
+
+further configuration. Throughout the manual, asterisks (**) indicate factory default values.
+
+
+
+
+Barcode Scanning
+
+     Powered by 2D area-imaging technology, the scanner features fast scanning and accurate decoding.
+
+Barcode rotated at any angle can still be read.
+
+
+
+
+Factory Defaults
+
+     Scanning the following barcode can restore the scanner to the factory defaults, and the current settings
+
+will be lost.
+
+     Use this feature with discretion.
+
+
+
+
+                                                     327601
+                                         Restore All Factory Defaults
+Disable Programing Barcode
+
+                                                                                                  V2024.05.18
+     When the programing barcode is scanned, the reader parameters will be changed by default. Meanwhile,
+
+programing barcode is disabled, the scanner stops processing the programming barcode to change parameter,
+
+as a normal barcode. When Disable Programming Barcode is enabled, only the Cancel Disable Programming
+
+Barcode is valid.
+
+
+
+
+                                                                                    21784203
+                                                                          Disable Programming Barcode
+
+
+
+
+                         21784200
+          Cancel Disable Programming Barcode**
+
+
+
+
+                                                                                              V2024.05.18
+                          2. Communication Interface
+
+
+
+   2.1. Introduction
+
+     The scan engine provide a TTL-232 interface and a USB interface, Weigand(optional) to communicate with
+the host device. The host device can receive scanned data and send commands to control the engine or
+write/read the configuration information of the engine via the interface.
+
+
+   2.2. RS232-TTL Interface
+
+      Serial communication interface is usually used when connecting the engine to a host device (like PC, POS).
+However, to ensure smooth communication and accuracy of data, you need to set communication parameters
+(including baud rate) to match the host device.
+
+     The serial communication interface provided by the engine is based on TTL-level signals. TTL-232 can be
+used for most application architectures. For those requiring RS-232, an external conversion circuit is needed.
+The conversion circuit is available only to some models.
+
+
+
+
+                                                     21424000
+                                              Serial Communication
+
+     Data bit, and stop bit, Parity check is 8, 1, None in fixed, and following is Baud Rate settings:
+
+
+
+
+                                                                                                         V2024.05.18
+Baud Rate
+
+
+    Baud rate is the number of bits of data transmitted per second. Set the baud rate to match the Host
+requirements.
+
+
+
+
+                 2141410B                                                     21414106
+                 ** 115200                                                       4800
+
+
+
+
+                 21414107                                                     21414108
+                   9600                                                         19200
+
+
+
+
+                 21414109                                                     2141410A
+                  38400                                                         57600
+
+
+
+
+                                                                                            V2024.05.18
+21414109   2141410D
+ 128000     230400
+
+
+
+
+2141410E   2141410F
+ 256000     460800
+
+
+
+
+                      V2024.05.18
+RS485
+
+
+Some devices provide RS485 interface with exchange chip. It like with RS232, and baud rate configuration is
+the same as above.
+
+
+
+
+                                                 21424004
+                                                   RS485
+
+UART Number
+
+
+In ZD3120 series, 10PIN and 4PIN interfaces both provide RS232, there are two UART for these two interfaces
+separately. But only one RS232 is available at times, so which one is used should be configured.
+
+
+
+
+                  21414501                                                         21414500
+                   UART1                                                            UART0
+
+
+
+
+                                                                                                  V2024.05.18
+   2.3. USB Serial Port
+
+     If you connect the engine to the Host via a USB connection, the USB Serial Port feature allows the Host to
+receive data in the way as a serial port does. A driver is required for this feature.
+
+
+
+
+                                                 21424002
+                                               USB Serial Port
+
+   2.4. USB Keyboard
+
+     When you connect the engine to the Host via a USB connection, you can enable the USB HID-KBW feature
+by scanning the barcode below. Then engine’s transmission will be simulated as USB keyboard input. The Host
+receives keystrokes on the virtual keyboard. It works on a Plug and Play basis and no driver is required.
+
+
+
+
+                                                 21424001
+                                                USB Keyboard
+
+
+
+USB Country Keyboard Types
+
+
+     Keyboard layouts vary from country to country. The default setting is U.S. keyboard.
+
+
+
+
+                  21434000                                                          21434001
+                   ** U.S.                                                            Spain
+
+
+
+
+                                                                                                    V2024.05.18
+21434002      21434004
+ Germany       France
+
+
+
+
+21434005      21434006
+   Italy       Sweden
+
+
+
+
+21434008      2143400A
+    UK         Brazil
+
+
+
+
+2143400D      2143400E
+South Korea    Russia
+
+
+
+
+2143400F      21434010
+ Turkey_Q     Turkey_F
+
+
+
+                         V2024.05.18
+                21434011                                                       21434012
+                 Hungary                                                        Croatia
+
+
+
+
+Keyboard Style
+
+
+ Make the output in the same way of some function keys are pressed on keyboard, for example Caps key.
+
+
+
+
+              21434800                                                       21434801
+               Normal                                                         Caps Lock
+
+
+
+
+                                                                                             V2024.05.18
+Encoded Output Method
+
+
+Most barcode data is encoded in ASCII with visible characters such as characters numbers, and but output will
+be confused when the content is encoded in UTF-8. In Windows OS, Alt + keypad support output UTF-8 content
+directly.
+
+
+
+
+                                                 21434100
+                                                  **ASCII
+
+
+
+
+                21434101                                                         21434102
+                   GBK                                                             UTF-8
+
+
+
+
+Inter-Keystroke Delay
+
+
+This parameter specifies the delay between emulated keystrokes.
+
+
+
+
+                21434600                                                         21434601
+               **No Delay                                                        Delay 2ms
+
+
+
+
+                21434602                                                         21434603
+                Delay 5ms                                                        Delay 8ms
+
+
+                                                                                                  V2024.05.18
+21434604     21434605
+Delay 11ms   Delay 16ms
+
+
+
+
+21434606     21434607
+Delay 20ms   Delay 30ms
+
+
+
+
+21434608     21434609
+Delay 40ms   Delay 50ms
+
+
+
+
+                          V2024.05.18
+  2.5. USB HID-POS
+
+   The USB HID-POS interface is recommended for new application programs. It can send up to 56 characters
+
+   in a single USB report and appears more efficient than keyboard emulation.
+
+   Features:
+       HID based, no custom driver required.
+
+       Way more efficient in communication than keyboard emulation and traditional RS-232 interface.
+
+
+
+   Note: USB HID-POS does not require a custom driver. However, a HID interface on Windows 98 does. All
+
+   HID interfaces employ standard driver provided by the operating system. Use defaults when installing the
+
+   driver.
+
+
+
+
+                                                 21424003
+                                                USB HID-POS
+
+
+Report Define
+
+
+   Acquire Scanned Data
+       Report ID
+                       Available data length Data block Reserved data block        End of package
+       0x02
+       1 bytes         1 byte                   56 bytes      5 bytes              1 byte
+
+   If the available data longer than 56 bytes, there will be more than one package: end of package = 1, means
+   there is pending packages end of package = 0, means there is no pending package.
+
+
+   Send Data to the Scanner
+       Report ID                                Data block Reserved data
+                       Available data length                                       End of package
+       0x04
+
+       1 bytes         1 byte                   60 bytes      1 byte               1 byte
+
+   If the available data longer than 60 bytes, there will be more than one package: end of package = 1, means
+   there is pending packages end of package = 0, means there is no pending package
+
+
+                                                                                                 V2024.05.18
+HIDPOS Delay
+
+
+  This parameter specifies the delay between every report.
+
+
+
+
+             21424200                                          21424201
+            **No Daley                                         Daley 2ms
+
+
+
+
+             21424202                                          21424203
+             Daley 5ms                                         Daley 8ms
+
+
+
+
+             21424204                                          21424205
+            Daley 11ms                                         Daley 16ms
+
+
+
+
+          Daley 21424206                                     Daley 21424207
+               20ms                                               30ms
+
+
+
+
+                                                                              V2024.05.18
+                21424208                                                    21424209
+                Daley 40ms                                                  Daley 50ms
+
+
+
+
+VID/PID
+
+
+   USB uses VID (Vendor ID) and PID (Product ID) to identify and locate a device. Scanner engine VID is
+   0x0525(HEX)。A PID is assigned to each interface.
+
+
+    Interface                PID (Hex)                PID (Dec)
+    USB HID Keyboard         A401                     41985
+    USB Serial Port          A407                     41991
+    USB HID-POS              A402                     41986
+
+
+
+
+                                                                                            V2024.05.18
+                                      3. Scan Mode
+
+
+
+ 3.1. Trigger Mode
+
+  Driving the TRIG pin on the host interface connector low activates a decode session. The session continues
+
+  until the barcode is decoded or the active trigger signal is no longer present.
+
+  If the Trigger Mode is enabled, the command “Start Decode” and “Stop Decode” is in the same way of
+
+  TRIG pin. Send “Start Decode” command to start decode session, and “Stop Decode” command to stop
+
+  decode.
+
+
+
+
+                                                 21614100
+                                               Trigger Mode
+
+
+
+
+Decoding Command Session Timeout
+
+
+  This parameter sets the maximum time decode session continues during a scan attempt of command
+  “Start Decode with Timeout” in Trigger Mode. When it is set to 0, the timeout is infinite.
+
+
+
+
+             21618A0000                                                             21618A03E8
+            **No Timeout                                                                1s
+
+
+
+
+                                                                                                 V2024.05.18
+          21618A07D0                                                        21618A2710
+              2s                                                                10s
+
+
+
+
+          21618A0BB8                                                        21618A1388
+              3s                                                                5s
+
+
+
+
+3.2. Continuous Mode
+
+When driving the TRIG pin on the host interface connector low activates a decode session, and the engine
+to scan/capture, decode and transmit over and over again. When driving the TRIG pin again the decode
+session will be stopped.
+
+When the engine is operating in Continuous Mode, the command “Start Decode” and “Stop Decode” is in
+the same way.
+
+
+
+
+                                           21614101
+                                        Continuous Mode
+
+
+
+
+                                                                                             V2024.05.18
+  3.3. Auto Mode
+
+   When the engine is operating in Auto Mod, barcode reading will be all the time, and cannot be stopped.
+
+
+
+
+                                              21614102
+                                              Auto Mode
+
+  3.4. Pulse Mode
+
+   Decode session is activated by electric pulse of trigger signal. The decode session continues until the
+   barcode is decoded or decode session timeout expires.
+
+   When the engine is operating in Pulse Mode, the command “Start Decode” is also available.
+
+
+
+
+                                               21614104
+                                              Pulse Mode
+
+
+
+
+Decode Session Timeout
+
+
+   This parameter sets the maximum time decode session continues during a scan attempt in Pulse Mode.
+
+
+
+
+             2161821388                                                      2161822710
+                 **5s                                                             10s
+
+
+
+
+                                                                                               V2024.05.18
+21618201F4   21618203E8
+   0.5s          1s
+
+
+
+
+21618207D0   2161820BB8
+    2s           3s
+
+
+
+
+                          V2024.05.18
+  3.5. Sense Mode
+
+   If the Sense Mode is enabled, the engine activates a decode session every time it detects a change in
+   ambient illumination. The decode session continues until the barcode is decoded or image is stabled.
+
+   Driving the TRIG pin on the host interface connector low or send “Start Decode” command can also
+   activate a decode session. When the barcode is decoded or no change in ambient illumination, the decode
+   session will be stopped.
+
+
+
+
+                                               21614105
+                                              Sense Mode
+
+
+
+Sensitivity
+
+
+   Sensitivity specifies the level of acuteness of the engine’s response to changes in ambient illumination.
+   The higher the sensitivity, the lower requirement in illumination change to trigger the engine. You can
+   select an appropriate degree of sensitivity that fits the ambient environment. Default level is 3.
+
+
+
+
+              21614403                                                          21614401
+                 **3                                                                1
+
+
+
+
+              21614402                                                          21614404
+                  2                                                                  4
+
+
+
+
+                                                                                                 V2024.05.18
+                                             21614405
+                                                 5
+
+
+
+
+Continue after Good Read
+
+
+   Continue after Good Read: The engine starts next decode session after good read, continue to decode
+   until no code decoded in timeout time.
+
+   Pause after Good Read: The engine starts another round of illumination monitoring and image
+   stabilization after good read.
+
+
+
+
+             21614B00                                                      21614B01
+      ** Pause after Good Read                                      Continue after Good Read
+
+
+
+
+                                                                                           V2024.05.18
+Continue Timeout
+
+
+   This parameter sets the maximum time decode when Continue after Good Read is enabled. That will be
+   restart count timer when a new decoded happen during this time. The decode will pause when there is
+   no decoded and timeout, and the engine comes to the detecting stage.
+
+
+
+
+            21618C0032
+               **5s
+
+
+
+
+            21618C000A                                                      21618C0014
+                 1s                                                              2s
+
+
+
+
+            21618C001E                                                      21618C0064
+                 3s                                                             10s
+
+
+
+
+                                                                                           V2024.05.18
+Timeout between decode
+
+   This parameter sets the timeout between the change detected and to start decode session.
+
+
+
+
+            2161850000                                                      2161850320
+            No Timeout                                                       **800ms
+
+
+
+
+            21618503E8                                                      21618507D0
+                 1s                                                              2s
+
+
+
+
+            2161850BB8                                                      2161851388
+                 3s                                                              5s
+
+
+
+
+                                                                                              V2024.05.18
+                         4. Reading Parameters
+
+
+
+4.1. Illumination（LED）
+
+A illumination are provided to improve the lighting conditions during every image capture:
+
+   Decoding ON: Illumination LEDs are turned on during decode session.
+
+
+   Always ON: Illumination LEDs keep ON after the engine is powered on.
+
+   OFF：Illumination LEDs are OFF all the time.
+
+
+
+
+           21624102
+        ** Decoding ON
+
+
+
+
+                                                                             21624100
+                                                                               OFF
+
+
+
+
+           21624103
+           Always ON
+
+
+
+
+                                                                                             V2024.05.18
+Enable in Detecting Sense Mode
+
+
+   Enable in Detecting Sense Mode: set illumination led on in detecting stage of Sense Mode, which is the
+   checking change stage. When the ambient light is wake, led enabled can improve the ability of change
+   detection.
+
+   Disable in Sense Mode: it is default setting of turn off led in detecting stage of Sense Mode.
+
+
+
+
+                21624400                                                           21624401
+                **Disable                                                           Enable
+
+
+   Brightness
+
+   If This parameter sets the brightness of LED in detecting stage of Sense Mod.
+
+
+
+
+                21624C05                                                           21624C0A
+                    5                                                                 10
+
+
+
+
+                21624C1E
+                   30
+
+
+
+
+                                                                                                    V2024.05.18
+Decode Brightness
+
+
+   This parameter sets the LED brightness percentage in decode session.
+
+
+
+
+              21624800                                                    2162480A
+              **Default                                                     10%
+
+
+
+
+              21624814                                                    2162481E
+                20%                                                         30%
+
+
+
+
+              21624828                                                    21624832
+                40%                                                         50%
+
+
+
+
+                                                                                     V2024.05.18
+2162483C%   21624846%
+   60%         70%
+
+
+
+
+21624850    2162485A
+  80%         90%
+
+
+
+
+                        V2024.05.18
+4.2. Aiming Led
+
+When scanning/capturing image, the engine projects an aiming pattern which allows positioning the
+target barcode within its field of view and thus makes decoding easier.
+
+   Decoding Flash：Aiming pattern ON and OFF alternately in decode session.
+
+   Decoding ON: Aiming pattern is constantly ON in decode session.
+
+   OFF：Aiming pattern is OFF all the time.
+
+
+
+
+          21624201                                                      21624202
+
+           **Flash                                                    Decoding ON
+
+
+
+
+          21624200
+
+             OFF
+
+
+
+
+                                                                                      V2024.05.18
+Enable in Detecting Sense Mode
+
+
+   Enable in Detecting Sense Mode: set the aiming led on in detecting stage of Sense Mode.
+
+   Disable in Sense Mode: aiming led is off in detecting stage of Sense Mode.
+
+
+
+
+              21624500                                                          21624501
+              **Disable                                                          Enable
+
+
+
+
+                                                                                             V2024.05.18
+  4.3. Beep
+
+Good Read Beep
+
+
+   The engine can provide a PWM output to an external driver circuit to drive a beeper after decoding a non-
+   programming barcode. Scan the appropriate barcode below to enable or disable the emission of good
+   read beep.
+
+
+
+
+              21634600                                                          21634601
+         Good Read Beep Off                                              ** Good Read Beep On
+
+
+
+
+Good Read Beep Times
+
+
+   Set the times of good read beep
+
+
+
+
+              21634201                                                          21634202
+              **1 Times                                                          2 Times
+
+
+
+
+                                                                                                 V2024.05.18
+Good Read Beep Type
+
+
+
+
+                                                 21634101
+                                                 **Default
+
+
+
+
+              21634100                                                       21634102
+                Short                                                          Long
+
+
+
+Startup Beep
+
+
+   if startup beep is enabled, the engine will beep after being turned on.
+
+
+
+
+              21634501                                                       21634500
+            Enable 4 Beep                                                     Disable
+
+
+
+
+              21634502
+            Enable 2 Beep
+
+
+
+
+                                                                                        V2024.05.18
+ 4.4. Timeout between Decodes
+
+Same Barcode
+
+
+  Timeout between Decodes (Same Barcode) can avoid undesired rereading of same barcode in a given
+  period of time.
+
+
+
+
+           2164820000                                                  21648201F4
+            ** Disable                                               Timeout 500ms
+
+
+
+
+           21648203E8                                                 21648207D0
+            Timeout 1s                                                 Timeout 2s
+
+
+
+
+           2164821388                                                 2164822710
+            Timeout 5s                                                Timeout 10s
+
+
+
+
+                                                                                       V2024.05.18
+Ignore Same Barcode Timeout In Sense Mode
+
+
+   Maintain Timeout: there must be a timeout when Timeout between same barcode is enable
+
+   Ignore Timeout: If detecting image changed in Sense Mode, the same barcode also can be decoded even
+   if not reaching the timeout.
+
+
+
+
+            21644300                                                        21644301
+        ** Maintain Timeout                                              Ignore Timeout
+
+
+
+
+                                                                                           V2024.05.18
+  4.5. Multiple Barcode Reading
+
+   When Multiple Reading Mode is enabled, the scanner keeps on processing the image until all the barcodes
+   are decoded, which the number barcode of configured is reached. The reader then transmits all barcode
+   data at once.
+
+
+
+
+              21314000                                                         21314001
+      **Disable Multiple Reading                                        Enable Multiple Reading
+
+
+
+
+The number of multiple barcodes
+
+
+   Define the number of bar codes in your multiple barcodes. You can select up to 6 bar codes in a Multiple
+   Reading.
+
+
+
+
+             2131810002                                                       2131810003
+                 **2                                                                3
+
+
+
+
+             2131810004                                                       2131810005
+                  4                                                                 5
+
+
+
+
+                                                                                                V2024.05.18
+            2131810006
+                  6
+
+
+Incomplete Transmission
+
+
+   Enable or disable transmission of an incomplete multicode. When enabled the incomplete multicode is
+   transmitted when the incomplete transmission timeout expires.
+
+
+
+
+              21314200                                                       21314201
+        ** Disable Incomplete                                            Enable Incomplete
+            transmission                                                    transmission
+
+
+
+
+Incomplete Transmission Timeout
+
+
+   Set the timeout (milliseconds) used when incomplete transmission is enabled. The timeout starts after
+   the last bar code is read.
+
+
+
+
+            2131830000                                                      21318301F4
+               **None                                                          500ms
+
+
+
+
+                                                                                             V2024.05.18
+2131830E8    21318307D0
+    1s           2s
+
+
+
+
+2131830BB8   2131831388
+    3s           5s
+
+
+
+
+2131832710
+   10s
+
+
+
+
+                          V2024.05.18
+4.1. NFC Reader
+
+    Read engine that supports reading the ID number data of IC card (M1 13.56MHz), Functions such as
+
+card reading and output data format definition can be set. Which IC card choose from the common 4 byte
+
+UID card or the newer 7 byte UID card.
+
+    Default read NFC card number function is disabled, when enabled, the card is close to the device to
+
+read the card area range, read the card successfully buzzer will sound, prompting to read the card
+
+successfully, and the UID will be sent according to the communication interface output.
+
+
+
+
+           21454001
+          Enable NFC
+
+
+
+
+                                                                                  21454000
+                                                                                **Disable NFC
+
+
+
+
+                                                                                            V2024.05.18
+UID Bytes Order
+
+       The UID bytes will be output in a certain byte order. Here we set the IC card bytes output arrangement
+  order。
+
+       Positive order (MSB): Data bytes are output in the order that the high byte comes first and the low
+  byte comes last.
+
+       Reverse order (LSB): Data bytes are output in the order that the lower byte comes first and the higher
+  byte comes last.
+
+
+
+
+             21454200                                                            21454201
+               ** MSB                                                               LSB
+
+      For example, read card data is 0x12345678, positive order output 12 34 56 78, reverse order output
+  78 56 34 12
+
+
+
+
+                                                                                                 V2024.05.18
+Output Format
+
+        When the output communication interface is set to serial, virtual serial, or HID-POS, the UID is output
+
+   as byte data. It is also possible to convert the ID byte data into a decimal value by converting the byte data
+
+   into a numeric string.
+
+
+
+
+               21454501                                                            21454500
+              Bytes Data                                                      ** 10D Numeric String
+
+
+
+
+              21454502                                                              21454503
+         10D Numeric String -                                                    Bytes Hex String
+             No Patch 0
+
+
+
+
+Byte Position for Wiegand
+
+        Weigand outputs NFC card reading dat a, and when the card data exceeds the currently set Weigand
+
+   output protocol data range, the number of valid output bytes needs to be set.
+
+        For example: IC card is 4 bytes of data, set the positive order output originally is 0x11223344, when
+
+   Weigand output protocol is 26, because 26 maximum 3 bytes, configure the last 3 bytes, then the output
+
+   data is 0x223344; configure the first 3 bytes, then the output data is 0x112233.
+
+
+
+
+                                                                                                      V2024.05.18
+  NFC card number data location under Weigand 26
+
+
+
+
+              21454700                                                           21454701
+        **Wg 26 Last 3 Bytes                                                Wg 26 First 3 Bytes
+
+
+
+
+  NFC card number data location under Weigand 34
+
+
+
+
+              21454800                                                           21454801
+        ** Wg 34 Last 4 Bytes                                               Wg 34 First 4 Bytes
+
+
+
+  NFC card number data location under Weigand 66
+
+
+
+
+              21454900                                                           21454901
+        ** Wg 66 Last 8 Bytes                                               Wg 66 First 8 Bytes
+
+
+
+
+Card Reading Mode
+
+       Set the NFC reading mode, image sensing is when the reading mode is set to motion sensing mode,
+
+  when there is an object moving in the reading field of view, it triggers the NFC reading, and turns off the
+
+  card reading mechanism when it is idle. When it is idle, the card reading mechanism is switched off. When
+
+  it is always on, it is always in the card reading state.
+
+
+
+
+                                                                                                  V2024.05.18
+   21454100         21454101
+** motion sensing   Always On
+
+
+
+
+                                V2024.05.18
+                                     5. Data Editing
+
+
+
+  5.1. Suffix
+
+   Append custom suffix after the decoded data or NFC ID data
+
+
+Enable/Disable
+
+
+   Disable Suffixes: Transmit barcode data or NFC ID data with no suffix.
+
+   Enable Suffixes: Allow user to append Code character to the barcode data before the transmission.
+
+   Enable Barcode Suffixes: Only transmit barcode data with suffix
+
+   Enable NFC Suffixes: Only transmit NFC ID data with suffix
+
+
+
+
+              21514C01                                                          21514C00
+          ** Enable Suffixes                                                 Disable Suffixes
+
+
+
+
+             21514C02                                                           21514C03
+       Enable Barcode Suffixes                                              Enable NFC Suffixes
+
+
+
+
+Set Barcode Suffix
+
+
+                                                                                                  V2024.05.18
+   The default barcode suffix content is none, user can append any characters with following config code.
+   The Config Tools can be used to set a custom suffix
+
+
+
+
+            2151C20000                                                    2151C200020D0A
+         Barcode Suffix None                                                   CR/LR
+
+
+
+
+            2151C200010D                                                   2151C200010A
+                 CR                                                             LR
+
+
+
+
+Set NFC Suffix
+
+
+   The default nfc suffix content is none, user can append any characters with following config code. The
+   Config Tools can be used to set a custom suffix
+
+
+
+
+                                                2151D20000
+                                             ** NFC Suffix None
+
+
+
+
+  5.2. Prefix
+
+   Add custom prefix before the decoded data or NFC ID data
+
+
+
+                                                                                              V2024.05.18
+Enable/Disable
+
+
+   Disable Prefixes: Transmit barcode data or NFC ID data with no prefix.
+
+   Enable Prefixes: Allow user to append code character to the barcode data before the transmission.
+
+   Enable Barcode Prefixes: Only transmit barcode data with prefix
+
+   Enable NFC Prefixes: Only transmit NFC ID data with prefix
+
+
+
+
+              21514B01                                                          21514B00
+          ** Enable Prefixes                                                 Disable Prefixes
+
+
+
+
+              21514B02                                                          21514C03
+       Enable Barcode Prefixes                                              Enable NFC Prefixes
+
+
+
+
+Set Barcode Prefix
+
+
+   The default barcode prefix content is none, user can append any characters with following config code.
+   The Config Tools can be used to set a custom prefix
+
+
+
+
+                                                                                                  V2024.05.18
+                                             2151C10000
+                                        ** Barcode Prefix None
+
+
+
+
+Set NFC Prefix
+
+
+   The default nfc prefix content is none, user can append any characters with following config code. The
+   Config Tools can be used to set a custom prefix
+
+
+
+
+                                             2151D10000
+                                          ** NFC Prefix None
+
+
+
+
+                                                                                              V2024.05.18
+5.3. Data Packing
+
+Data packing is designed for a specific group of users who want to have the data packed before
+transmission. Data packing influences data format, so it is advised to disable this feature when it is not
+required.
+
+
+
+
+           21514300
+    ** Disable Data Packing
+
+
+
+
+Format 1: [0x03] + LEN + DATA
+
+
+  LEN：Full output data length is expressed in 2 bytes ranging from 0x0000 (0) to 0xFFFF (65535)
+
+  DATA：Full output data, include raw barcode data, prefix, suffix
+
+
+Format 2：[0x03] + LEN + Code Num + Code1 LEN + Code1 DATA +... + CRC
+
+
+  LEN：Total length after this LEN data. 2 bytes ranging from 0x0000 (0) to 0xFFFF (65535)
+
+  Code Num：Decoded barcode numbers of. 1 byte.
+
+  Code1 LEN：The first barcode data length. 2 bytes ranging from 0x0000 (0) to 0xFFFF (65535)
+
+  Code1 DATA：The first barcode data
+
+  CRC：All above data CRC check data. 2 bytes. CRC calculation algorithm is CRC-16 BUYPASS, Refer to
+  Appendix B.
+
+
+Format 3：[0x03] + LEN + Code Num + Code1 ID + Code1 LEN + Code1 DATA + ... + CRC
+
+
+  LEN：Total length after this LEN data. 2 bytes ranging from 0x0000 (0) to 0xFFFF (65535)
+
+  Code Num：Decoded barcode numbers of. 1 byte.
+
+  Code1 ID: The defined Barcode ID. 1 byte
+
+  Code1 LEN：The first barcode data length. 2 bytes ranging from 0x0000 (0) to 0xFFFF (65535)
+
+  Code1 DATA：The first barcode data
+
+  CRC：All above data CRC check data. 2 bytes. CRC calculation algorithm is CRC-16 BUYPASS, Refer to
+  Appendix B.
+
+                                                                                               V2024.05.18
+21514301
+Format 1
+
+
+
+
+21514302   21514303
+Format 2   Format 3
+
+
+
+
+                      V2024.05.18
+5.4. Case Conversion
+
+This feature allows          conversion   of   the    case     of   all      alphabetic   characters      to
+upper or lower case.
+
+Case conversion affects ONLY scanned                 bar     code   data,      and    does   not       affect
+Label ID, Prefix, Suffix, or other appended data.
+
+
+
+
+           21514800                                                            21514801
+      ** Disable (no case                                                 Convert to upper case
+         conversion)
+
+
+
+
+           21514802
+     Convert to lower case
+
+
+
+
+                                                                                                  V2024.05.18
+                                     6. Symbologies
+
+
+
+  6.1. Global Settings
+
+Enable/Disable All Symbologies
+
+
+   If the Disable All Symbologies feature is enabled, the engine will not be able to read any non-programming
+   barcodes except the programming barcodes.
+
+
+
+
+              32764203                                                           32764200
+        Enable All Symbologies                                            Disable All Symbologies
+
+
+
+
+Enable/Disable 1D Symbologies
+
+
+   If the Disable 1D Symbologies feature is enabled, the engine will not be able to read any 1D barcodes
+
+
+
+
+              32764204                                                           32764206
+        Enable 1D Symbologies                                             Disable 1D Symbologies
+
+
+
+
+Enable/Disable 2D Symbologies
+
+
+                                                                                                   V2024.05.18
+    If the Disable 2D Symbologies feature is enabled, the engine will not be able to read any 2D barcodes
+
+
+
+
+               32764205                                                           32764207
+          Enable 2D Symbologies                                             Disable 2D Symbologies
+
+
+
+
+Video Reverse
+
+
+The      Video          Reverse        feature       only      applies          to            2D     barcodes.
+Regular        barcode:         Dark          image        on         a              bright        background.
+Inverse       barcode:          Bright         image        on          a             dark         background.
+The examples of regular barcode and inverse barcode are shown below
+
+
+
+
+             Regular Barcode                                                   Inverse Barcode
+
+
+
+
+    Video Reverse is used to allow the engine to read barcodes that are inverted.
+    Video    Reverse       ON:     Read      both    regular   barcodes     and     inverse barcodes.
+    Video         Reverse            OFF:           Read         regular          barcodes       only.
+    The engine shows a slight decrease in scanning speed when Video Reverse is ON.
+
+
+
+
+               21714402
+           Video Reverse ON
+
+
+
+
+                                                                                 21714400
+                                                                            **Video Reverse OFF
+
+
+
+
+                                                                                                     V2024.05.18
+  6.2. 2D Symbologies
+
+QR Code
+
+
+
+Enable/Disable QR Code
+
+
+
+
+             21104001              21104000
+         **Enable QR Code       Disable QR Code
+
+
+
+Mirror
+
+
+
+
+              21104200              21104201
+         **Disable QR Mirror   ** Enable QR Mirror
+
+
+
+
+                                                     V2024.05.18
+PDF417
+
+
+
+Enable/Disable PDF 417
+
+
+
+
+             21114001                21114000
+         ** Enable PDF 417        Disable PDF 417
+
+
+Chinese Sensible Code (HanXin)
+
+
+
+
+              21124001               21124000
+          ** Enable HanXin         DIsable HanXin
+
+
+Data Matrix
+
+
+
+
+             21134001                21134000
+        ** Enable Data Matrix    Disable Data Matrix
+
+
+Aztec
+
+
+
+
+             21144001                21144000
+            Enable Aztec          ** DIsable Aztec
+
+
+MicroQR
+
+
+
+
+                                                       V2024.05.18
+              21154001              21154000
+         Enable MicroQR        ** Disable MicroQR
+
+
+
+MicroPDF417
+
+
+
+
+              21164001              21164000
+       Enable MicroPDF417    ** Disable MicroPDF417
+
+
+
+Grid Matrix
+
+
+
+
+              21174001              21174000
+        Enable Grid Matrix    ** Disable Grid Matrix
+
+
+
+
+                                                       V2024.05.18
+  6.3. 1D Symbologies
+
+Code 11
+
+
+
+
+              21294001                  21294000
+           **Enable Code 11          Disable Code 11
+
+
+
+
+Check Digit Verification
+
+
+
+
+              21294100                  21294101
+               Disable           One Check Digit, MOD11
+
+
+
+
+              21294102                  21294103
+          Two Check Digits,             Auto Check
+           MOD11/MOD11
+
+
+
+
+Transmit Check Digit
+
+
+
+
+              21294201                  21294200
+         Transmit Check Digit   Do Not Transmit Check Digit
+
+                                                        V2024.05.18
+Code 39
+
+
+
+
+              21234001                                             21234000
+           **Enable Code 39                                     Disable Code 39
+
+
+
+
+Check Digit Verification
+
+
+
+
+              21234100                                             21234102
+               Disable                                        Enable Verification
+
+
+
+
+                                         21234101
+                                    Code 32 Verification
+
+
+
+
+Enable/Disable Code 39 Full ASCII
+
+
+
+
+              21234201                                             21234200
+       Enable Code 39 Full ASCII                           Disable Code 39 Full ASCII
+
+
+                                                                                    V2024.05.18
+Transmit Start/Stop Character
+
+
+
+
+              21234301                       21234300
+     Transmit Start/Stop Character   Do Not Transmit Start/Stop
+                                             Character
+
+
+
+
+Transmit Check Digit
+
+
+
+
+              21234401                       21234400
+         Transmit Check Digit        Do Not Transmit Check Digit
+
+Code 93
+
+
+
+
+              21224001                       21224000
+           **Enable Code 93               Disable Code 93
+
+
+
+
+Enable/Disable Code 93 Full ASCII
+
+
+
+
+              21224101                       21224100
+       Enable Code 93 Full ASCII     Disable Code 93 Full ASCII
+
+
+
+
+                                                             V2024.05.18
+Code 128
+
+
+
+
+              21214001                  21214000
+         ** Enable Code 128          Disable Code 128
+
+
+
+
+UPC-A
+
+
+
+
+              21244101                  21244100
+            Enable UPC-A              Disable UPC-A
+
+
+
+
+Transmit Check Digit
+
+
+
+
+              21245101                  21245100
+         Transmit Check Digit   Do Not Transmit Check Digit
+
+
+
+
+UPC-E
+
+
+
+
+                                                        V2024.05.18
+              21244201                  21244200
+            Enable UPC-E              Disable UPC-E
+
+
+Transmit Check Digit
+
+
+
+
+              21245201                  21245200
+         Transmit Check Digit   Do Not Transmit Check Digit
+
+
+
+
+EAN-13
+
+
+
+
+              21244301                  21244300
+           Enable EAN-13              Disable EAN-13
+
+
+
+
+Transmit Check Digit
+
+
+
+
+              21245301                  21245300
+         Transmit Check Digit   Do Not Transmit Check Digit
+
+
+
+
+                                                        V2024.05.18
+EAN-8
+
+
+
+
+              21244401                  21244400
+            Enable EAN-8              Disable EAN-8
+
+
+Transmit Check Digit
+
+
+
+
+              21245401                  21245400
+         Transmit Check Digit   Do Not Transmit Check Digit
+
+
+
+
+                                                        V2024.05.18
+Codabar
+
+
+
+
+              21254001                     21254000
+            Enable Codabar              Disable Codabar
+
+
+
+
+Check Digit Verification
+
+
+
+
+              21254101                     21254100
+       Enable Check Verification            Disable
+
+
+
+
+Transmit Check Digit
+
+
+
+
+              21254201                     21254200
+         Transmit Check Digit      Do Not Transmit Check Digit
+
+
+
+
+Transmit Start/Stop Character
+
+
+
+
+              21254300                     21254301
+
+                                                           V2024.05.18
+       Do not Transmit Start/Stop   Transmit Start/Stop Character:
+               Character                        ABCD
+
+
+
+
+              21254302
+          Transmit Start/Stop
+           Character：abcd
+
+
+
+
+Industrial 2 of 5
+
+
+
+
+               21264001                      21264000
+        Enable Industrial 2 of 5     **Disable Industrial 2 of 5
+
+
+
+
+Check Digit Verification
+
+
+
+
+               21264100                      21264101
+       Disable Check Verification    Enable Check Verification
+
+
+
+
+                                                               V2024.05.18
+Transmit Start/Stop Character
+
+
+
+
+               21264201                       21264200
+      Transmit Start/Stop Character   Do not Transmit Start/Stop
+                                              Character
+
+
+
+
+Matrix 2 of 5
+
+
+
+
+               21274001                       21274000
+          Enable Matrix 2 of 5         **Disable Matrix 2 of 5
+
+
+
+
+Check Digit Verification
+
+
+
+
+               21274101                       21274100
+       Enable Check Verification      Disable Check Verification
+
+
+
+
+                                                               V2024.05.18
+Transmit Start/Stop Character
+
+
+
+
+               21274201                        21274200
+      Transmit Start/Stop Character    Do not Transmit Start/Stop
+                                               Character
+
+
+
+
+Interleaved 2 of 5
+
+
+
+
+               21284001                        21284000
+       Enable Interleaved 2 of 5      **Disable Interleaved 2 of 5
+
+
+Check Digit Verification
+
+
+
+
+               21284101                        21284100
+       Enable Check Verification       Disable Check Verification
+
+
+
+
+                                                                V2024.05.18
+Transmit Start/Stop Character
+
+
+
+
+               21284201                       21284200
+      Transmit Start/Stop Character   Do not Transmit Start/Stop
+                                              Character
+
+
+
+
+MSI
+
+
+
+
+               212A4001                      212A4000
+              Enable MSI                   **Disable MSI
+
+
+Check Digit Verification
+
+
+
+
+               212A4100                      212A4101
+               **Disable              One Check Digit, MOD10
+
+
+
+
+               212A4102                      212A4103
+        One Check Digit, MOD11            Two Check Digits,
+                                           MOD10/MOD10
+
+
+
+
+                                                               V2024.05.18
+               212A4104
+           Two Check Digits,
+            MOD10/MOD11
+
+
+
+
+Transmit Start/Stop Character
+
+
+
+
+               212A4201                      212A4200
+      Transmit Start/Stop Character   Do not Transmit Start/Stop
+                                              Character
+
+
+
+
+GS1 Databar(Omni-Directional)
+
+
+
+
+               212B4001                       212B4000
+                 Enable                      **Disable
+
+
+
+
+GS1 Databar(Limited)
+
+
+
+
+                                                               V2024.05.18
+          212B4101      212B4100
+           Enable       **Disable
+
+
+
+
+GS1 Databar(Expanded)
+
+
+
+
+          212B4201      212B4200
+           Enable       **Disable
+
+
+
+
+Plessey
+
+
+
+
+          212C4001      212C4000
+           Enable       **Disable
+
+
+
+
+                                    V2024.05.18
+Transmit Start/Stop Character
+
+
+
+
+              212C4101                  212C4100
+         Transmit Check Digit   Do Not Transmit Check Digit
+
+
+
+
+China Post
+
+
+
+
+              212D4001                  212D4000
+          Enable China Post        **Disable China Post
+
+
+
+
+                                                          V2024.05.18
+Telepen
+
+
+
+
+           212E4001   212E4000
+            Enable    **Disable
+
+
+
+
+Character Set
+
+
+
+
+           212E4100
+            Default
+
+
+
+
+           212E4101   212E4102
+             ASCII     Numeric
+
+
+
+
+                                  V2024.05.18
+                             7. Appendix
+
+
+
+Appendix A: Symbology ID Number
+
+                 Symbology                 ID Number
+   Code 39                        1
+   Codabar                        2
+   Code 128                       3
+   Interleaved 2 of 5             6
+   Code 93                        7
+   UPCA                           8
+   UPCE                           9
+   EAN8                           10
+   EAN13                          11
+   MSI                            14
+   Databar Limited                35
+   Databar Omni                   36
+   Databar Expanded               37
+   Code 11                        38
+   Standard 2 of 5                39
+   Matrix 2 of 5                  40
+   Plessey                        42
+   China Post                     43
+   Telepen                        44
+   Data Matrix                    81
+   PDF417                         82
+   MicroPDF417                    83
+   QR Code                        87
+   Micro QR                       88
+   Aztec                          89
+   Chinese Sensible Code          96
+   GM Code                        97
+
+
+
+
+                                                       V2024.05.18
+Appendix B: CRC Algorithm in Data Packing
+
+  //0x18005 CRC-16 BUYPASS poly=0x8005 init=0x0000
+  unsigned short crc16_ccitt(const unsigned char *ptr, int len){
+    unsigned char i;
+    unsigned int ca_crc=0;
+    while(len-- != 0){
+      for(i=0x80; i != 0; i >>= 1){
+        if((ca_crc & 0x8000) != 0){
+           ca_crc <<= 1;
+           ca_crc ^= 0x18005;
+        }else{
+           ca_crc <<= 1;
+        }
+        if((*ptr&i) != 0) ca_crc^=0x18005;
+      }
+      ptr++;
+    }
+    return ca_crc;
+  }
+
+
+
+
+                                                                   V2024.05.18
+

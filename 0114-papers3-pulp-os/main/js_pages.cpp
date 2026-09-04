@@ -22,19 +22,20 @@ JSValue js_pulp_page(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
     if (!ArgString(ctx, argv[0], name, sizeof(name), &err)) {
         return err;
     }
+    JsCtxState *st = StateOf(ctx);
     int32_t index = -1;
     for (uint32_t i = 0; i < kMaxPages; ++i) {
-        if (g_pages[i].in_use &&
-            strncmp(g_pages[i].name, name, sizeof(name)) == 0) {
+        if (st->pages[i].in_use &&
+            strncmp(st->pages[i].name, name, sizeof(name)) == 0) {
             index = static_cast<int32_t>(i);
             break;
         }
     }
     if (index < 0) {
         for (uint32_t i = 0; i < kMaxPages; ++i) {
-            if (!g_pages[i].in_use) {
+            if (!st->pages[i].in_use) {
                 index = static_cast<int32_t>(i);
-                PageEntry &page = g_pages[i];
+                PageEntry &page = st->pages[i];
                 const uint16_t generation = page.generation;
                 page = PageEntry{};
                 page.generation = generation;
@@ -53,7 +54,7 @@ JSValue js_pulp_page(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
     }
     JS_SetOpaque(ctx, obj,
                  PackPage(static_cast<uint32_t>(index),
-                          g_pages[index].generation));
+                          st->pages[index].generation));
     return obj;
 }
 
@@ -159,7 +160,13 @@ JSValue js_p_show(JSContext *ctx, JSValue *this_val, int argc,
         }
         full = v != 0;
     }
-    const StatusCode presented = PresentPage(*page, full ? 1 : 0);
+    // show() claims the panel: a background context presenting a full
+    // page becomes the foreground (the browser error page path).
+    JsCtxState *st = StateOf(ctx);
+    if (st != g_fg) {
+        SwitchForeground(st);
+    }
+    const StatusCode presented = PresentPage(st, *page, full ? 1 : 0);
     return JS_NewInt32(ctx, static_cast<int32_t>(presented));
 }
 
@@ -167,7 +174,7 @@ JSValue js_p_update(JSContext *ctx, JSValue *this_val, int, JSValue *) {
     JSValue err;
     PageEntry *page = ThisPage(ctx, this_val, &err);
     if (page == nullptr) return err;
-    const StatusCode presented = PresentPage(*page, 2);
+    const StatusCode presented = PresentPage(StateOf(ctx), *page, 2);
     return JS_NewInt32(ctx, static_cast<int32_t>(presented));
 }
 
@@ -181,7 +188,7 @@ JSValue js_paper_home(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
     if (id == 0) {
         return JS_EXCEPTION;
     }
-    g_home_cb = id;
+    StateOf(ctx)->home_cb = id;
     return JS_UNDEFINED;
 }
 
@@ -194,7 +201,7 @@ JSValue js_paper_sleep_image(JSContext *ctx, JSValue *, int argc,
     if (id == 0) {
         return JS_EXCEPTION;
     }
-    g_sleep_image_cb = id;
+    StateOf(ctx)->sleep_image_cb = id;
     return JS_UNDEFINED;
 }
 

@@ -1,0 +1,8 @@
+# Per-component manifest for the CoreS3 QRCode scanner (ESP-62).
+# Component deps go HERE (main/idf_component.yml), never a root-level
+# idf_component.yml — a root manifest is ignored by ESP-IDF (AGENTS.md).
+dependencies:
+  m5stack/m5unified:
+    version: "~0.2.18"
+  m5stack/m5gfx:
+    version: "~0.2.25"

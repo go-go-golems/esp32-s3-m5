@@ -299,10 +299,14 @@ int CmdSleep(int argc, char **argv) {
 }
 
 void PrintJsSnapshot(const JsSnapshot &j) {
-    printf("js init=%u screen_active=%u arena=%u evals=%u exceptions=%u "
-           "dispatches=%u last_error=\"%s\"\n",
+    printf("js init=%u screen_active=%u arena=%u arena_used=%u loads=%u "
+           "last_load_ms=%u evals=%u "
+           "exceptions=%u dispatches=%u last_error=\"%s\"\n",
            j.initialized, j.screen_active,
            static_cast<unsigned>(j.arena_bytes),
+           static_cast<unsigned>(j.arena_used),
+           static_cast<unsigned>(j.loads),
+           static_cast<unsigned>(j.last_load_ms),
            static_cast<unsigned>(j.evals),
            static_cast<unsigned>(j.exceptions),
            static_cast<unsigned>(j.dispatches), j.last_error);
@@ -325,9 +329,11 @@ int CmdJs(int argc, char **argv) {
             arg2 = static_cast<uint32_t>(atoi(argv[2]));
         } else if (strcmp(argv[1], "hits") == 0) {
             arg = 13;
+        } else if (strcmp(argv[1], "measure") == 0) {
+            arg = 14;  // ESP-55 Phase 0: eval-cost measurement suite
         } else {
             printf("error: usage js [status|probe N|pulp|tap X Y|"
-                   "swipe K|hits]\n");
+                   "swipe K|hits|measure]\n");
             return 1;
         }
     }
@@ -566,6 +572,78 @@ int CmdHome(int, char **) {
     return status == StatusCode::Ok ? 0 : 1;
 }
 
+// ESP-54: battery level + charging status mirror (the JS battery.*
+// singleton is the rich surface; this is the no-JS probe).
+int CmdBattery(int, char **) {
+    AppReply reply;
+    const StatusCode status =
+        RunConsoleOp(ConsoleOp::Battery, 0, &reply, kReplyTimeoutMs);
+    const PowerSnapshot &p = reply.payload.power;
+    printf("bat level=%d%% mv=%d charging=%u auto_sleep=%us "
+           "result=%s\n",
+           static_cast<int>(p.battery_level),
+           static_cast<int>(p.battery_mv), p.charging,
+           static_cast<unsigned>(p.auto_sleep_sec),
+           StatusCodeName(status));
+    return status == StatusCode::Ok ? 0 : 1;
+}
+
+// ESP-54: image gallery mirror. `images` lists the catalog; `images display
+// <name>` and `images remove <name>` act on a stored .g4 frame.
+int CmdImages(int argc, char **argv) {
+    AppEvent event = MakeEvent(AppEventKind::ConsoleCommand,
+                               EventSource::Console, true);
+    event.payload.console.op = ConsoleOp::Images;
+    event.payload.console.arg = 0;
+    ConsolePayload &c = event.payload.console;
+    if (argc >= 2 && strcmp(argv[1], "status") != 0) {
+        if (strcmp(argv[1], "list") == 0) {
+            c.arg = 1;
+        } else if (strcmp(argv[1], "display") == 0 && argc >= 3) {
+            c.arg = 2;
+            snprintf(c.str_a, sizeof(c.str_a), "%s", argv[2]);
+        } else if (strcmp(argv[1], "remove") == 0 && argc >= 3) {
+            c.arg = 3;
+            snprintf(c.str_a, sizeof(c.str_a), "%s", argv[2]);
+        } else {
+            printf("error: usage images [status|list|display NAME|"
+                   "remove NAME]\n");
+            return 1;
+        }
+    }
+    const StatusCode posted = PostEvent(event);
+    if (posted != StatusCode::Ok) {
+        printf("error: enqueue failed: %s\n", StatusCodeName(posted));
+        return 1;
+    }
+    AppReply reply;
+    const StatusCode status =
+        AwaitReply(s_reply_queue, event.request_id, 8000, &reply);
+    if (status != StatusCode::Ok) {
+        printf("images op result: %s\n", StatusCodeName(status));
+        return 1;
+    }
+    const ImagesSnapshot &im = reply.payload.images;
+    printf("images sd=%u count=%u last_bytes=%u result=%s\n",
+           im.sd_ok, static_cast<unsigned>(im.count),
+           static_cast<unsigned>(im.last_bytes),
+           StatusCodeName(reply.status));
+    return reply.status == StatusCode::Ok ? 0 : 1;
+}
+
+int CmdShot(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+    AppReply reply;
+    // The QOI stream rides the same USB serial before the reply lands.
+    const StatusCode status =
+        RunConsoleOpWithArgs(ConsoleOp::Shot, 0, 0, &reply, 30000);
+    printf("shot result: %s\n",
+           StatusCodeName(status == StatusCode::Ok ? reply.status
+                                                   : status));
+    return 0;
+}
+
 void RegisterCommand(const char *name, const char *help,
                      esp_console_cmd_func_t fn) {
     const esp_console_cmd_t cmd = {
@@ -635,6 +713,14 @@ void ConsoleStart() {
                     "buzz [status|beep|stop|tone F MS|melody] - GPIO21 "
                     "buzzer",
                     &CmdBuzz);
+    RegisterCommand("bat",
+                    "bat - battery level, mv, and charging status",
+                    &CmdBattery);
+    RegisterCommand("images",
+                    "images [status|list|display NAME|remove NAME] - "
+                    "SD image gallery (ESP-54)",
+                    &CmdImages);
+    RegisterCommand("shot", "stream framebuffer as QOI (ESP-56)", &CmdShot);
     RegisterCommand("js",
                     "js [status|probe N|pulp|tap X Y|swipe K] - "
                     "MicroQuickJS runtime",

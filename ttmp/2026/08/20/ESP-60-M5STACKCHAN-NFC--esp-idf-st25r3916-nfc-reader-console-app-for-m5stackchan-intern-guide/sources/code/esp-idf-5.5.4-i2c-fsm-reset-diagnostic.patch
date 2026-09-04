@@ -1,0 +1,47 @@
+Subject: [ESP-60 DIAGNOSTIC] i2c_master: reset command FSM before every transaction
+
+ESP-60-M5STACKCHAN-NFC diagnostic patch. NOT for upstream/production as-is.
+
+Root-cause hypothesis (see ticket design-doc/05): the ESP-IDF 5.5.4 new I2C
+master driver resets the I2C command FSM only REACTIVELY (when the previous
+transaction left status==TIMEOUT or the bus reads busy). M5GFX's direct
+backend resets the FSM on EVERY transaction (common.cpp:2000,
+dev->ctr.fsm_rst = 1). Under high-frequency ST25R3916 IRQ polling the
+inherited FSM state occasionally produces a marginal START/address that
+the slave NACKs, surfacing as ESP_ERR_INVALID_STATE (I2C_EVENT_NACK,
+confirmed via driver DEBUG; zero timeouts).
+
+This patch makes the reset in s_i2c_transaction_start() UNCONDITIONAL,
+mirroring M5GFX, using clear_bus=false (the cheap fsm_rst bit toggle, not
+the heavier bus-clear+reinit recovery path) so the per-transaction cost
+stays minimal and the comparison is fair.
+
+Decision rule (design-doc/05 section 7.2):
+  - NACK rate -> ~0   : root cause confirmed; implement preventive reset as a
+                        local ST25R3916 backend (not an IDF fork).
+  - unchanged (~1%)   : controller-state cleanliness is wrong; pivot to
+                        SDA/SCL capture to locate the NACK byte stage.
+
+Base: ESP-IDF v5.5.4 commit 73550728
+File: components/esp_driver_i2c/i2c_master.c
+Lines: 683-687
+
+Apply:  patch -p1 < sources/code/esp-idf-5.5.4-i2c-fsm-reset-diagnostic.patch
+        (from the esp-idf-5.5.4 repo root)
+Revert: patch -R -p1 < sources/code/esp-idf-5.5.4-i2c-fsm-reset-diagnostic.patch
+
+--- a/components/esp_driver_i2c/i2c_master.c
++++ b/components/esp_driver_i2c/i2c_master.c
+@@ -682,8 +682,8 @@ static esp_err_t s_i2c_transaction_start(i2c_master_dev_handle_t i2c_dev, int xfer
+     TickType_t ticks_to_wait = (xfer_timeout_ms == -1) ? portMAX_DELAY : pdMS_TO_TICKS(xfer_timeout_ms);
+     // Sometimes when the FSM get stuck, the ACK_ERR interrupt will occur endlessly until we reset the FSM and clear bus.
+     esp_err_t ret = ESP_OK;
+-    if (atomic_load(&i2c_master->status) == I2C_STATUS_TIMEOUT || i2c_ll_is_bus_busy(hal->dev)) {
+-        ESP_RETURN_ON_ERROR(s_i2c_hw_fsm_reset(i2c_master, true), TAG, "reset hardware failed");
+-    }
++    // ESP-60 DIAGNOSTIC: reset the command FSM before EVERY transaction (mirrors
++    // M5GFX beginTransaction fsm_rst=1), not only reactively. clear_bus=false.
++    ESP_RETURN_ON_ERROR(s_i2c_hw_fsm_reset(i2c_master, false), TAG, "reset hardware failed");
+ 
+     if (i2c_master->base->pm_lock) {
+         ESP_RETURN_ON_ERROR(esp_pm_lock_acquire(i2c_master->base->pm_lock), TAG, "acquire pm_lock failed");

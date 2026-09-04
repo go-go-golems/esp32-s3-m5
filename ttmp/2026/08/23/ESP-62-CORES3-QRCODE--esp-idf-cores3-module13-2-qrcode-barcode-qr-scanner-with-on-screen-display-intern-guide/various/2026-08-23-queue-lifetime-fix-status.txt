@@ -1,0 +1,8 @@
+qr status
+[qr status] probing...
+W (41554) qr_engine: getInfos id=0xc1 hdr_got=0 byte0=0x00
+W (42404) qr_engine: getInfos id=0xc5 hdr_got=0 byte0=0x00
+qr status: NO REPLY -- check 12V power, DIP switch (UART), and that the module is stacked.
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>  
+cores3-qr>  

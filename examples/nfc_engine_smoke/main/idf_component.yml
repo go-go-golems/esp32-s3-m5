@@ -1,0 +1,7 @@
+# SPDX-License-Identifier: MIT
+dependencies:
+  idf:
+    version: ">=5.5.2,<6.0"
+  m5stack/M5Unit-NFC:
+    git: https://github.com/m5stack/M5Unit-NFC.git
+    version: 93745b547364f310cd64b5155a870103a7800a5d

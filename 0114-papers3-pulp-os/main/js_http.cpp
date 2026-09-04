@@ -12,7 +12,7 @@ using namespace jsi;
 namespace {
 
 void CancelHttpCb() {
-    g_module_cb[static_cast<uint8_t>(ModuleId::Http)] = 0;
+    CancelModuleCb(ModuleId::Http);
 }
 
 JSValue ThrowStatus(JSContext *ctx, const char *what, StatusCode status) {

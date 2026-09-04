@@ -9,6 +9,8 @@ idf_component_register(
         "net_serve.cpp"
         "net_socket.cpp"
         "net_wifi.cpp"
+        "net_mdns.cpp"
+        "app_images.cpp"
         "app_console.cpp"
         "app_input.cpp"
         "app_power.cpp"
@@ -24,10 +26,33 @@ idf_component_register(
         "js_widgets.cpp"
         "js_pages.cpp"
         "js_services.cpp"
+        "js_images.cpp"
+        "js_mdns.cpp"
         "js_probes.cpp"
+        "js_assets.cpp"
+        "js_apps.cpp"
+        "js_browser.cpp"
+        "js_stdlib_table_ui.c"
         "js_stdlib_table.c"
+        "app_shot.cpp"
     INCLUDE_DIRS
         "."
+    EMBED_TXTFILES
+        "../tools/js/apps/2048.js"
+        "../tools/js/apps/blitz.js"
+        "../tools/js/apps/browser.js"
+        "../tools/js/apps/daily.js"
+        "../tools/js/apps/dice.js"
+        "../tools/js/apps/gallery.js"
+        "../tools/js/apps/ink.js"
+        "../tools/js/apps/library.js"
+        "../tools/js/apps/postcard.js"
+        "../tools/js/apps/radio.js"
+        "../tools/js/apps/reader.js"
+        "../tools/js/apps/settings.js"
+        "../tools/js/apps/tea.js"
+        "../tools/js/pages/ui-helpers.js"
+        "../tools/js/pages/probe-page.js"
     REQUIRES
         mquickjs
         console
@@ -44,11 +69,13 @@ idf_component_register(
         esp_netif
         esp_event
         nvs_flash
+        mdns
         s3paper_core
         s3paper_m5
         m5stack__m5gfx
         s3paper_storage
         s3paper_runtime
+        screenshot_qoi
         fatfs
         sdmmc
         esp_driver_sdspi

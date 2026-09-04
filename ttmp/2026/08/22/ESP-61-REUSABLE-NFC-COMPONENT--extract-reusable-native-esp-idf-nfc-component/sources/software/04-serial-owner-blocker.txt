@@ -1,0 +1,10 @@
+# Phase 0 serial ownership blocker
+2026-08-22T15:46:03-04:00
+
+                     USER        PID ACCESS COMMAND
+/dev/ttyACM0:        manuel    189173 F.... python
+
+UID          PID    PPID  C STIME TTY          TIME CMD
+manuel    189173  189172  0 14:39 pts/23   00:00:13 /home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python -m esp_idf_monitor -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/m5stackchan_nfc_feature_explorer.elf /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/bootloader/bootloader.elf -m '/home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python' '/home/manuel/esp/esp-idf-5.5.4/tools/idf.py' '-p' '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00'
+
+cmdline=/home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python -m esp_idf_monitor -p /dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00 -b 115200 --toolchain-prefix xtensa-esp32s3-elf- --target esp32s3 --revision 0 /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/m5stackchan_nfc_feature_explorer.elf /home/manuel/code/wesen/go-go-golems/esp32-s3-m5/0117-m5stackchan-nfc-feature-explorer/build/bootloader/bootloader.elf -m '/home/manuel/.espressif/python_env/idf5.5_py3.13_env/bin/python' '/home/manuel/esp/esp-idf-5.5.4/tools/idf.py' '-p' '/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00'

@@ -1,0 +1,452 @@
+=== BOOT ===
+
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc>  I (1169) main: console ready (try: help, nfc-scan, nfc-probe, nfc-field on, nfc-read, nfc-poll)
+I (1169) main_task: Returned from app_main()
+
+
+=== CMD: nfc-i2c-debug off ===
+nfc-i2c-debug off
+i2c.master log level: INFO
+nfc>
+
+######## BACKEND idf-high ########
+
+=== CMD: nfc-backend idf-high ===
+nfc-backend idf-high
+backend set: idf-high (ESP_OK)
+nfc>
+
+=== CMD: nfc-configure ===
+nfc-configure
+configure (idf-high): ESP_OK
+I (1239) st25r3916: regs: OPC=CB MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00
+I (1239) st25r3916:       ANT1=82 ANT2=82 TXD=D0 NRT=0000 TEMV=00 MAIN_IRQ=001A00 FIFO_bytes=0
+I (1239) st25r3916:       SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40
+nfc>
+
+=== CMD: nfc-regs ===
+nfc-regs
+I (1249) st25r3916: regs: OPC=CB MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=00
+I (1259) st25r3916:       ANT1=82 ANT2=82 TXD=D0 NRT=0000 TEMV=00 MAIN_IRQ=000000 FIFO_bytes=0
+I (1259) st25r3916:       SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40
+nfc>
+
+=== CMD: nfc-read --attempts 5 ===
+nfc-read --attempts 5
+I (1269) st25r3916: reqa: irq=000020 timer=00 error=00 fifo=2 raw=02/00 coll=20 rxs=1 rxe=0 col=0
+I (1279) st25r3916: anticoll sel=93 retry=0 irq=0010 fifo=5 coll_disp=70
+I (1289) st25r3916: anticoll sel=95 retry=0 irq=0010 fifo=5 coll_disp=70
+PICC: UID=04:91:D4:4C:9E:61:80 ATQA=0044 SAK=00 type=MIFARE Ultralight/NTAG
+nfc>
+
+=== CMD: nfc-regs ===
+nfc-regs
+I (1309) st25r3916: regs: OPC=CB MODE=09 ISO=01 AUX=00 RX1=08 RX2=2D RSSI=99
+I (1319) st25r3916:       ANT1=82 ANT2=82 TXD=D0 NRT=069F TEMV=00 MAIN_IRQ=000000 FIFO_bytes=0
+I (1319) st25r3916:       SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40
+nfc>
+
+=== CMD: nfc-trace status ===
+nfc-trace status
+TRACE_STATUS mode=all backend=idf-high recorded=200 failed=0 ring=200/512 overwritten=0 first_error=none
+nfc>
+
+=== CMD: nfc-trace dump --last 160 ===
+nfc-trace dump --last 160
+TRACE_BEGIN schema=1 tail=160 events=200 overwritten=0 failed=0 first_error_seq=0
+I2C_TRACE seq=41 t_us=1140087 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=42 t_us=1152136 gap_us=11872 elapsed_us=258 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=43 t_us=1152413 gap_us=19 elapsed_us=182 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=03 wire=43 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=44 t_us=1152598 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=05 wire=45 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=45 t_us=1152777 gap_us=2 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=46 t_us=1152957 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=0B wire=4B wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=47 t_us=1153137 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=0C wire=4C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=48 t_us=1153317 gap_us=3 elapsed_us=176 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=26 wire=66 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=49 t_us=1153496 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=27 wire=67 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=50 t_us=1153676 gap_us=3 elapsed_us=176 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=28 wire=68 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=51 t_us=1153855 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=10 wire=50 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=52 t_us=1154035 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=11 wire=51 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=53 t_us=1154214 gap_us=2 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=54 t_us=1154394 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=2D wire=6D wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=55 t_us=1154576 gap_us=5 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=30 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=56 t_us=1154778 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=31 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=57 t_us=1154980 gap_us=3 elapsed_us=200 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=32 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=58 t_us=1155182 gap_us=2 elapsed_us=200 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=33 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=59 t_us=1155385 gap_us=3 elapsed_us=200 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=0C wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=60 t_us=1155588 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=0D wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=61 t_us=1155790 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=05 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=62 t_us=1155992 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=63 t_us=1156171 gap_us=2 elapsed_us=209 backend=idf-high phase=diag attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=64 t_us=1156389 gap_us=9 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=65 t_us=1156569 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=66 t_us=1173824 gap_us=17078 elapsed_us=264 backend=idf-high phase=field-on attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=67 t_us=1174121 gap_us=33 elapsed_us=179 backend=idf-high phase=req-setup attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=68 t_us=1174313 gap_us=13 elapsed_us=155 backend=idf-high phase=req-setup attempt=1 kind=W op=WRITE_A logical=10 wire=10 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=69 t_us=1174471 gap_us=3 elapsed_us=129 backend=idf-high phase=req-setup attempt=1 kind=W op=WRITE_A logical=11 wire=11 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=70 t_us=1174605 gap_us=5 elapsed_us=129 backend=idf-high phase=req-setup attempt=1 kind=W op=WRITE_A logical=05 wire=05 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=71 t_us=1174737 gap_us=3 elapsed_us=176 backend=idf-high phase=req-setup attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=72 t_us=1174916 gap_us=3 elapsed_us=130 backend=idf-high phase=req-setup attempt=1 kind=W op=WRITE_A logical=0A wire=0A wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=73 t_us=1175053 gap_us=7 elapsed_us=177 backend=idf-high phase=req-setup attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=74 t_us=1175233 gap_us=3 elapsed_us=210 backend=idf-high phase=req-setup attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=75 t_us=1175451 gap_us=8 elapsed_us=201 backend=idf-high phase=req-setup attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=76 t_us=1175656 gap_us=4 elapsed_us=201 backend=idf-high phase=req-setup attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=77 t_us=1175860 gap_us=3 elapsed_us=108 backend=idf-high phase=req-setup attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=78 t_us=1175971 gap_us=3 elapsed_us=106 backend=idf-high phase=req-tx attempt=1 kind=W op=DIRECT logical=C6 wire=C6 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=79 t_us=1176086 gap_us=9 elapsed_us=177 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=80 t_us=1176266 gap_us=3 elapsed_us=201 backend=idf-high phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=81 t_us=1176470 gap_us=3 elapsed_us=177 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=82 t_us=1176650 gap_us=3 elapsed_us=177 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=83 t_us=1176829 gap_us=2 elapsed_us=177 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=84 t_us=1177017 gap_us=11 elapsed_us=177 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=85 t_us=1177197 gap_us=3 elapsed_us=176 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=86 t_us=1179206 gap_us=1833 elapsed_us=226 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=87 t_us=1179441 gap_us=9 elapsed_us=187 backend=idf-high phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=88 t_us=1179642 gap_us=14 elapsed_us=183 backend=idf-high phase=fifo-read attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=89 t_us=1179829 gap_us=4 elapsed_us=176 backend=idf-high phase=fifo-read attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=90 t_us=1180010 gap_us=5 elapsed_us=201 backend=idf-high phase=fifo-read attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=91 t_us=1180218 gap_us=7 elapsed_us=182 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=92 t_us=1180403 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=10 wire=10 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=93 t_us=1180535 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=11 wire=11 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=94 t_us=1180667 gap_us=3 elapsed_us=130 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=05 wire=05 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=95 t_us=1180799 gap_us=2 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=96 t_us=1180979 gap_us=3 elapsed_us=130 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=0A wire=0A wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=97 t_us=1181116 gap_us=7 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=98 t_us=1181295 gap_us=2 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=99 t_us=1181502 gap_us=6 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=100 t_us=1181706 gap_us=3 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=101 t_us=1181909 gap_us=2 elapsed_us=107 backend=idf-high phase=anticoll attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=102 t_us=1182022 gap_us=6 elapsed_us=152 backend=idf-high phase=anticoll attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=3 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=103 t_us=1182177 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=104 t_us=1182309 gap_us=3 elapsed_us=130 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=105 t_us=1182441 gap_us=2 elapsed_us=107 backend=idf-high phase=anticoll attempt=1 kind=W op=DIRECT logical=C5 wire=C5 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=106 t_us=1182554 gap_us=6 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=107 t_us=1182734 gap_us=3 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=108 t_us=1182947 gap_us=12 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=109 t_us=1183127 gap_us=3 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=110 t_us=1183331 gap_us=3 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=111 t_us=1183511 gap_us=3 elapsed_us=176 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=112 t_us=1183691 gap_us=4 elapsed_us=269 backend=idf-high phase=anticoll attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=5 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=113 t_us=1183964 gap_us=4 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=114 t_us=1185497 gap_us=1356 elapsed_us=228 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=115 t_us=1185735 gap_us=10 elapsed_us=212 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=116 t_us=1185950 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=117 t_us=1186154 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=118 t_us=1186358 gap_us=3 elapsed_us=109 backend=idf-high phase=select attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=119 t_us=1186470 gap_us=3 elapsed_us=265 backend=idf-high phase=select attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=8 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=120 t_us=1186738 gap_us=3 elapsed_us=129 backend=idf-high phase=select attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=121 t_us=1186871 gap_us=4 elapsed_us=129 backend=idf-high phase=select attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=122 t_us=1187003 gap_us=3 elapsed_us=107 backend=idf-high phase=select attempt=1 kind=W op=DIRECT logical=C4 wire=C4 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=123 t_us=1187117 gap_us=7 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=124 t_us=1187297 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=125 t_us=1187510 gap_us=12 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=126 t_us=1187689 gap_us=2 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=127 t_us=1187911 gap_us=21 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=128 t_us=1188090 gap_us=2 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=129 t_us=1188304 gap_us=13 elapsed_us=176 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=130 t_us=1188483 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=131 t_us=1188691 gap_us=7 elapsed_us=176 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=132 t_us=1188870 gap_us=3 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=133 t_us=1189050 gap_us=3 elapsed_us=224 backend=idf-high phase=select attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=3 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=134 t_us=1189290 gap_us=16 elapsed_us=183 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=135 t_us=1189477 gap_us=4 elapsed_us=131 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=10 wire=10 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=136 t_us=1189611 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=11 wire=11 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=137 t_us=1189743 gap_us=3 elapsed_us=130 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=05 wire=05 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=138 t_us=1189875 gap_us=2 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=139 t_us=1190055 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=0A wire=0A wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=140 t_us=1190188 gap_us=4 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=141 t_us=1190368 gap_us=3 elapsed_us=203 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=142 t_us=1190576 gap_us=5 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=143 t_us=1190779 gap_us=2 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=144 t_us=1190984 gap_us=4 elapsed_us=106 backend=idf-high phase=anticoll attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=145 t_us=1191093 gap_us=3 elapsed_us=152 backend=idf-high phase=anticoll attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=3 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=146 t_us=1191248 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=147 t_us=1191380 gap_us=3 elapsed_us=129 backend=idf-high phase=anticoll attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=148 t_us=1191512 gap_us=3 elapsed_us=107 backend=idf-high phase=anticoll attempt=1 kind=W op=DIRECT logical=C5 wire=C5 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=149 t_us=1191624 gap_us=5 elapsed_us=176 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=150 t_us=1191803 gap_us=3 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=151 t_us=1192017 gap_us=13 elapsed_us=176 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=152 t_us=1192196 gap_us=3 elapsed_us=201 backend=idf-high phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=153 t_us=1192400 gap_us=3 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=154 t_us=1192580 gap_us=3 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=155 t_us=1192760 gap_us=3 elapsed_us=269 backend=idf-high phase=anticoll attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=5 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=156 t_us=1193032 gap_us=3 elapsed_us=177 backend=idf-high phase=anticoll attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=157 t_us=1194494 gap_us=1285 elapsed_us=214 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=158 t_us=1194716 gap_us=8 elapsed_us=205 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=159 t_us=1194925 gap_us=4 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=160 t_us=1195129 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=161 t_us=1195333 gap_us=3 elapsed_us=106 backend=idf-high phase=select attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=162 t_us=1195443 gap_us=4 elapsed_us=264 backend=idf-high phase=select attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=8 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=163 t_us=1195712 gap_us=5 elapsed_us=131 backend=idf-high phase=select attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=164 t_us=1195846 gap_us=3 elapsed_us=129 backend=idf-high phase=select attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=165 t_us=1195978 gap_us=3 elapsed_us=106 backend=idf-high phase=select attempt=1 kind=W op=DIRECT logical=C4 wire=C4 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=166 t_us=1196092 gap_us=8 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=167 t_us=1196271 gap_us=2 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=168 t_us=1196485 gap_us=13 elapsed_us=176 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=169 t_us=1196664 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=170 t_us=1196877 gap_us=12 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=171 t_us=1197057 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=172 t_us=1197270 gap_us=12 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=173 t_us=1197450 gap_us=3 elapsed_us=201 backend=idf-high phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=174 t_us=1197654 gap_us=3 elapsed_us=177 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=175 t_us=1197834 gap_us=3 elapsed_us=176 backend=idf-high phase=select attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=176 t_us=1198013 gap_us=3 elapsed_us=224 backend=idf-high phase=select attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=3 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=177 t_us=1212809 gap_us=14572 elapsed_us=315 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=178 t_us=1213157 gap_us=33 elapsed_us=180 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=03 wire=43 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=179 t_us=1213340 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=05 wire=45 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=180 t_us=1213520 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=181 t_us=1213699 gap_us=2 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=0B wire=4B wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=182 t_us=1213880 gap_us=4 elapsed_us=176 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=0C wire=4C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=183 t_us=1214059 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=26 wire=66 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=184 t_us=1214239 gap_us=3 elapsed_us=176 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=27 wire=67 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=185 t_us=1214418 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=28 wire=68 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=186 t_us=1214598 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=10 wire=50 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=187 t_us=1214778 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=11 wire=51 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=188 t_us=1214958 gap_us=3 elapsed_us=176 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=189 t_us=1215137 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=2D wire=6D wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=190 t_us=1215322 gap_us=8 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=30 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=191 t_us=1215524 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=31 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=192 t_us=1215726 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=32 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=193 t_us=1215928 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=33 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=194 t_us=1216131 gap_us=4 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=0C wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=195 t_us=1216333 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=0D wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=196 t_us=1216535 gap_us=3 elapsed_us=199 backend=idf-high phase=diag attempt=1 kind=WR op=READ_B logical=05 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=197 t_us=1216739 gap_us=5 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=198 t_us=1216919 gap_us=3 elapsed_us=208 backend=idf-high phase=diag attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=199 t_us=1217142 gap_us=15 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=200 t_us=1217322 gap_us=3 elapsed_us=177 backend=idf-high phase=diag attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+TRACE_END result=ok tail=160 failed=0 first_error_seq=0
+nfc>
+
+=== CMD: nfc-trace first-error ===
+nfc-trace first-error
+FIRST_ERROR: none
+nfc>
+
+######## BACKEND idf-defined ########
+
+=== CMD: nfc-backend idf-defined ===
+nfc-backend idf-defined
+backend set: idf-defined (ESP_OK)
+nfc>
+
+=== CMD: nfc-configure ===
+nfc-configure
+configure (idf-defined): ESP_OK
+I (1879) st25r3916: regs: OPC=CB MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=99
+I (1889) st25r3916:       ANT1=82 ANT2=82 TXD=D0 NRT=069F TEMV=00 MAIN_IRQ=000000 FIFO_bytes=0
+I (1889) st25r3916:       SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40
+nfc>
+
+=== CMD: nfc-regs ===
+nfc-regs
+I (1899) st25r3916: regs: OPC=CB MODE=09 ISO=00 AUX=00 RX1=08 RX2=2D RSSI=99
+I (1899) st25r3916:       ANT1=82 ANT2=82 TXD=D0 NRT=069F TEMV=00 MAIN_IRQ=000000 FIFO_bytes=0
+I (1899) st25r3916:       SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40
+nfc>
+
+=== CMD: nfc-read --attempts 5 ===
+nfc-read --attempts 5
+I (1969) st25r3916: reqa: irq=000000 timer=00 error=00 fifo=0 raw=00/00 coll=70 rxs=0 rxe=0 col=0
+I (1979) st25r3916: wupa: irq=000030 timer=00 error=00 fifo=2 raw=02/00 coll=90 rxs=1 rxe=1 col=0
+I (1979) st25r3916: anticoll sel=93 retry=0 irq=0010 fifo=5 coll_disp=70
+I (1989) st25r3916: anticoll sel=95 retry=0 irq=0010 fifo=5 coll_disp=70
+PICC: UID=04:91:D4:4C:9E:61:80 ATQA=0044 SAK=00 type=MIFARE Ultralight/NTAG
+nfc>
+
+=== CMD: nfc-regs ===
+nfc-regs
+I (2019) st25r3916: regs: OPC=CB MODE=09 ISO=01 AUX=00 RX1=08 RX2=2D RSSI=99
+I (2019) st25r3916:       ANT1=82 ANT2=82 TXD=D0 NRT=069F TEMV=00 MAIN_IRQ=000000 FIFO_bytes=0
+I (2029) st25r3916:       SpaceB: OS=40/03 US=40/03 CORR=47/00 EMD=40
+nfc>
+
+=== CMD: nfc-trace status ===
+nfc-trace status
+TRACE_STATUS mode=all backend=idf-def recorded=439 failed=0 ring=439/512 overwritten=0 first_error=none
+nfc>
+
+=== CMD: nfc-trace dump --last 160 ===
+nfc-trace dump --last 160
+TRACE_BEGIN schema=1 tail=160 events=439 overwritten=0 failed=0 first_error_seq=0
+I2C_TRACE seq=280 t_us=1867492 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=281 t_us=1867732 gap_us=12 elapsed_us=200 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=282 t_us=1867935 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=283 t_us=1868175 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=284 t_us=1868377 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=285 t_us=1868617 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=286 t_us=1868819 gap_us=3 elapsed_us=227 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=287 t_us=1869059 gap_us=13 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=288 t_us=1869260 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=289 t_us=1869500 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=290 t_us=1869702 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=291 t_us=1869942 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=292 t_us=1870144 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=293 t_us=1870384 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=294 t_us=1870586 gap_us=3 elapsed_us=227 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=295 t_us=1870826 gap_us=13 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=296 t_us=1871027 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=297 t_us=1871267 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=298 t_us=1871469 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=299 t_us=1871709 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=300 t_us=1871911 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=301 t_us=1872151 gap_us=12 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=302 t_us=1872353 gap_us=3 elapsed_us=227 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=303 t_us=1872593 gap_us=13 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=304 t_us=1872794 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=305 t_us=1873035 gap_us=13 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=306 t_us=1873236 gap_us=3 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=307 t_us=1873476 gap_us=12 elapsed_us=205 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=308 t_us=1873684 gap_us=3 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=309 t_us=1873886 gap_us=3 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=310 t_us=1874095 gap_us=11 elapsed_us=206 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=311 t_us=1874305 gap_us=4 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=312 t_us=1876283 gap_us=1780 elapsed_us=254 backend=idf-def phase=req-setup attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=313 t_us=1876543 gap_us=6 elapsed_us=153 backend=idf-def phase=req-setup attempt=1 kind=W op=WRITE_A logical=10 wire=10 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=314 t_us=1876703 gap_us=7 elapsed_us=148 backend=idf-def phase=req-setup attempt=1 kind=W op=WRITE_A logical=11 wire=11 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=315 t_us=1876855 gap_us=4 elapsed_us=148 backend=idf-def phase=req-setup attempt=1 kind=W op=WRITE_A logical=05 wire=05 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=316 t_us=1877006 gap_us=3 elapsed_us=204 backend=idf-def phase=req-setup attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=317 t_us=1877213 gap_us=3 elapsed_us=148 backend=idf-def phase=req-setup attempt=1 kind=W op=WRITE_A logical=0A wire=0A wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=318 t_us=1877364 gap_us=3 elapsed_us=199 backend=idf-def phase=req-setup attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=319 t_us=1877566 gap_us=3 elapsed_us=228 backend=idf-def phase=req-setup attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=320 t_us=1877798 gap_us=4 elapsed_us=237 backend=idf-def phase=req-setup attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=321 t_us=1878038 gap_us=3 elapsed_us=227 backend=idf-def phase=req-setup attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=322 t_us=1878268 gap_us=3 elapsed_us=125 backend=idf-def phase=req-setup attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=323 t_us=1878398 gap_us=5 elapsed_us=131 backend=idf-def phase=req-tx attempt=1 kind=W op=DIRECT logical=C7 wire=C7 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=324 t_us=1878542 gap_us=13 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=325 t_us=1878743 gap_us=2 elapsed_us=228 backend=idf-def phase=irq-wait attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=326 t_us=1878974 gap_us=3 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=327 t_us=1879176 gap_us=3 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=328 t_us=1879378 gap_us=3 elapsed_us=198 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=329 t_us=1879582 gap_us=6 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=330 t_us=1879783 gap_us=2 elapsed_us=199 backend=idf-def phase=irq-wait attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=331 t_us=1881728 gap_us=1746 elapsed_us=244 backend=idf-def phase=fifo-read attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=332 t_us=1881977 gap_us=5 elapsed_us=204 backend=idf-def phase=fifo-read attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=333 t_us=1882192 gap_us=11 elapsed_us=228 backend=idf-def phase=fifo-read attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=334 t_us=1882429 gap_us=9 elapsed_us=210 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=335 t_us=1882644 gap_us=5 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=10 wire=10 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=336 t_us=1882795 gap_us=3 elapsed_us=147 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=11 wire=11 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=337 t_us=1882945 gap_us=3 elapsed_us=157 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=05 wire=05 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=338 t_us=1883104 gap_us=2 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=339 t_us=1883306 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=0A wire=0A wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=340 t_us=1883460 gap_us=6 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=341 t_us=1883661 gap_us=2 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=342 t_us=1883895 gap_us=6 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=343 t_us=1884126 gap_us=3 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=344 t_us=1884357 gap_us=3 elapsed_us=125 backend=idf-def phase=anticoll attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=345 t_us=1884488 gap_us=6 elapsed_us=170 backend=idf-def phase=anticoll attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=3 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=346 t_us=1884661 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=347 t_us=1884812 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=348 t_us=1884963 gap_us=3 elapsed_us=125 backend=idf-def phase=anticoll attempt=1 kind=W op=DIRECT logical=C5 wire=C5 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=349 t_us=1885095 gap_us=7 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=350 t_us=1885297 gap_us=3 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=351 t_us=1885539 gap_us=14 elapsed_us=198 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=352 t_us=1885740 gap_us=3 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=353 t_us=1885972 gap_us=4 elapsed_us=198 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=354 t_us=1886173 gap_us=3 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=355 t_us=1886375 gap_us=3 elapsed_us=296 backend=idf-def phase=anticoll attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=5 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=356 t_us=1886675 gap_us=4 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=357 t_us=1888262 gap_us=1388 elapsed_us=246 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=358 t_us=1888518 gap_us=10 elapsed_us=233 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=359 t_us=1888757 gap_us=6 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=360 t_us=1888987 gap_us=2 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=361 t_us=1889218 gap_us=3 elapsed_us=125 backend=idf-def phase=select attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=362 t_us=1889347 gap_us=4 elapsed_us=283 backend=idf-def phase=select attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=8 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=363 t_us=1889633 gap_us=3 elapsed_us=148 backend=idf-def phase=select attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=364 t_us=1889784 gap_us=3 elapsed_us=148 backend=idf-def phase=select attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=365 t_us=1889935 gap_us=3 elapsed_us=125 backend=idf-def phase=select attempt=1 kind=W op=DIRECT logical=C4 wire=C4 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=366 t_us=1890067 gap_us=7 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=367 t_us=1890269 gap_us=3 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=368 t_us=1890509 gap_us=12 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=369 t_us=1890711 gap_us=3 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=370 t_us=1890951 gap_us=12 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=371 t_us=1891153 gap_us=3 elapsed_us=227 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=372 t_us=1891387 gap_us=7 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=373 t_us=1891589 gap_us=3 elapsed_us=198 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=374 t_us=1891790 gap_us=3 elapsed_us=251 backend=idf-def phase=select attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=3 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=375 t_us=1892057 gap_us=16 elapsed_us=204 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=376 t_us=1892266 gap_us=5 elapsed_us=147 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=10 wire=10 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=377 t_us=1892416 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=11 wire=11 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=378 t_us=1892567 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=05 wire=05 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=379 t_us=1892718 gap_us=3 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=380 t_us=1892920 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=0A wire=0A wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=381 t_us=1893072 gap_us=4 elapsed_us=198 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=382 t_us=1893273 gap_us=3 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=383 t_us=1893506 gap_us=5 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=384 t_us=1893736 gap_us=2 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=385 t_us=1893967 gap_us=3 elapsed_us=125 backend=idf-def phase=anticoll attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=386 t_us=1894095 gap_us=3 elapsed_us=171 backend=idf-def phase=anticoll attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=3 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=387 t_us=1894269 gap_us=3 elapsed_us=147 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=388 t_us=1894419 gap_us=3 elapsed_us=148 backend=idf-def phase=anticoll attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=389 t_us=1894570 gap_us=3 elapsed_us=125 backend=idf-def phase=anticoll attempt=1 kind=W op=DIRECT logical=C5 wire=C5 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=390 t_us=1894700 gap_us=5 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=391 t_us=1894902 gap_us=3 elapsed_us=227 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=392 t_us=1895142 gap_us=13 elapsed_us=198 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=393 t_us=1895343 gap_us=3 elapsed_us=228 backend=idf-def phase=anticoll attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=394 t_us=1895575 gap_us=4 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=395 t_us=1895776 gap_us=2 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=396 t_us=1895978 gap_us=3 elapsed_us=296 backend=idf-def phase=anticoll attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=5 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=397 t_us=1896277 gap_us=3 elapsed_us=199 backend=idf-def phase=anticoll attempt=1 kind=WR op=READ_A logical=20 wire=60 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=398 t_us=1897757 gap_us=1281 elapsed_us=266 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=399 t_us=1898031 gap_us=8 elapsed_us=237 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=400 t_us=1898273 gap_us=5 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1C wire=5C wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=401 t_us=1898504 gap_us=3 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1B wire=5B wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=402 t_us=1898735 gap_us=3 elapsed_us=125 backend=idf-def phase=select attempt=1 kind=W op=DIRECT logical=DB wire=DB wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=403 t_us=1898863 gap_us=3 elapsed_us=283 backend=idf-def phase=select attempt=1 kind=W op=FIFO_W logical=80 wire=80 wlen=8 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=404 t_us=1899149 gap_us=3 elapsed_us=148 backend=idf-def phase=select attempt=1 kind=W op=WRITE_A logical=22 wire=22 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=405 t_us=1899300 gap_us=3 elapsed_us=148 backend=idf-def phase=select attempt=1 kind=W op=WRITE_A logical=23 wire=23 wlen=2 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=406 t_us=1899451 gap_us=3 elapsed_us=125 backend=idf-def phase=select attempt=1 kind=W op=DIRECT logical=C4 wire=C4 wlen=1 rlen=0 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=407 t_us=1899583 gap_us=7 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=408 t_us=1899785 gap_us=3 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=409 t_us=1900025 gap_us=12 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=410 t_us=1900226 gap_us=2 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=411 t_us=1900467 gap_us=13 elapsed_us=198 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=412 t_us=1900668 gap_us=3 elapsed_us=228 backend=idf-def phase=select attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=413 t_us=1900901 gap_us=5 elapsed_us=198 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=414 t_us=1901102 gap_us=3 elapsed_us=199 backend=idf-def phase=select attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=415 t_us=1901304 gap_us=3 elapsed_us=250 backend=idf-def phase=select attempt=1 kind=WR op=FIFO_R logical=9F wire=9F wlen=1 rlen=3 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=416 t_us=1920032 gap_us=18478 elapsed_us=331 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=02 wire=42 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=417 t_us=1920392 gap_us=29 elapsed_us=201 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=03 wire=43 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=418 t_us=1920596 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=05 wire=45 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=419 t_us=1920798 gap_us=3 elapsed_us=198 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=0A wire=4A wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=420 t_us=1920999 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=0B wire=4B wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=421 t_us=1921202 gap_us=4 elapsed_us=198 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=0C wire=4C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=422 t_us=1921403 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=26 wire=66 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=423 t_us=1921605 gap_us=3 elapsed_us=198 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=27 wire=67 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=424 t_us=1921806 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=28 wire=68 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=425 t_us=1922009 gap_us=4 elapsed_us=198 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=10 wire=50 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=426 t_us=1922210 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=11 wire=51 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=427 t_us=1922412 gap_us=3 elapsed_us=198 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=12 wire=52 wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=428 t_us=1922613 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=2D wire=6D wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=429 t_us=1922820 gap_us=8 elapsed_us=223 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=30 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=430 t_us=1923046 gap_us=3 elapsed_us=221 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=31 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=431 t_us=1923270 gap_us=3 elapsed_us=221 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=32 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=432 t_us=1923494 gap_us=3 elapsed_us=222 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=33 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=433 t_us=1923719 gap_us=3 elapsed_us=221 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=0C wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=434 t_us=1923943 gap_us=3 elapsed_us=221 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=0D wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=435 t_us=1924167 gap_us=3 elapsed_us=221 backend=idf-def phase=diag attempt=1 kind=WR op=READ_B logical=05 wire=FB wlen=2 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=436 t_us=1924391 gap_us=3 elapsed_us=199 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=1C wire=5C wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=437 t_us=1924593 gap_us=3 elapsed_us=235 backend=idf-def phase=diag attempt=1 kind=WR op=IRQ_R logical=1A wire=5A wlen=1 rlen=2 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=438 t_us=1924843 gap_us=15 elapsed_us=200 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=1E wire=5E wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+I2C_TRACE seq=439 t_us=1925047 gap_us=4 elapsed_us=198 backend=idf-def phase=diag attempt=1 kind=WR op=READ_A logical=1F wire=5F wlen=1 rlen=1 api=ESP_OK hint=DONE class=OK flags=-
+TRACE_END result=ok tail=160 failed=0 first_error_seq=0
+nfc>
+
+=== CMD: nfc-trace first-error ===
+nfc-trace first-error
+FIRST_ERROR: none
+nfc>

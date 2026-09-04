@@ -1,0 +1,345 @@
+M14 PRO Installation guide
+                                        M14 PRO Installation guide
+
+                                                              目录
+
+1、Product introduction ..................................................................................................... 3
+
+
+   1.1 Introduction ................................................................................................................ 3
+
+
+   1.2 Main features .............................................................................................................. 4
+
+
+   1.3 Performance parameters ......................................................................................... 4
+
+
+2、Sroduct Structure ........................................................................................................... 6
+
+
+   2.1 Product appearance .................................................................................................. 6
+
+
+   2.2 Product size ................................................................................................................. 6
+
+
+   2.3 Data socket.................................................................................................................. 7
+
+
+   2.4 Flexible cable .............................................................................................................. 7
+
+
+   2.5 Structural components design points.................................................................. 8
+
+
+      2.5.1 Structural components ..................................................................................... 8
+
+
+      2.5.2 Temperature ........................................................................................................ 8
+
+
+      2.5.3 Read the window ................................................................................................ 8
+
+
+3、Hardware design .......................................................................................................... 10
+
+
+   3.1 Data interface definition ........................................................................................ 10
+
+
+4、Software design ............................................................................................................ 11
+
+
+5、 Configuration tools and configuration bar code .............................................. 11
+
+
+   5.1 Configuration tools ................................................................................................. 11
+                                 M14 PRO Installation guide
+
+5.2 Configuration bar code .......................................................................................... 12
+                      M14 PRO Installation guide
+
+
+1、Product introduction
+
+1.1 Introduction
+
+   M14 PRO is an embedded one-dimensional / two-dimensional bar
+
+code reading engine, using CMOS image technology and with
+
+independent intellectual property rights of the leading international
+
+level of intelligent image recognition system. M14 PRO read the
+
+powerful performance, you can read the print or magnetic bar code
+
+information on the bar; small size, you can easily embedded in a variety
+
+of OEM products (including hand-held, scanning guns, portable and
+
+fixed bar code collector) and so on. M14 PRO also provides users with
+
+a wealth of secondary development capabilities, including to provide
+
+users with a completely open image acquisition interface, device
+
+interface and I / O operation interface, the user can easily solve the
+
+individual needs of the SDK.
+                     M14 PRO Installation guide
+
+
+1.2 Main features
+
+ Small size, easy to embed into other devices;
+
+ Support the mainstream of the one-dimensional and two-
+
+    dimensional code;
+
+ Embedded high-performance processing chip, decoding speed,
+
+    reading accuracy and high ability；
+
+ Easy to configure, support for firmware upgrades；
+
+   Can be customized to a high degree of technical support；
+
+
+
+
+1.3 Performance parameters
+
+
+Parameters
+
+Reading mode                   CMOS
+
+Resolution                     640x480
+
+                               PDF417，Micro PDF417，QR Code，Micro
+
+             2D                QR，Mirror QR，Data Matrix，HANXIN，
+
+                               Aztec
+Barcode
+                               Code11，Code39, Code93，Code 128，
+  type
+                               EAN-13，EAN-8，UPC-A，UPC-E，Codabar，
+             1D
+                               Interleaved 2 of 5，Matrix 2 of 5，Industial
+
+                               2 of 5，MSI，GS1 Databar
+                       M14 PRO Installation guide
+
+Reading accuracy                 ≥ 5mil
+
+Read depth of field              50mm~160mm
+
+Print contrast                   ≥ 20%
+
+Barcode rotation sensitivity     360°@ 0°Pitch and 0°Skew
+
+Bar code tilt sensitivity        ±55° @ 0°Roll and 0°Pitch
+
+Barcode deflection sensitivity   ±55°@ 0°Roll and 0°Skew
+
+Ambient light intensity          0 ~ 100,000 LUX
+
+Electrical characteristics
+
+Maximum power consumption         1.2W
+
+Voltage                           5V
+
+Current   Maximum current         240 mA
+
+          Working current         180 mA
+
+Weight                            3.6g
+
+working environment
+
+Operating temperature        -20℃～ +60℃
+
+Storage temperature          -40℃～+80℃
+
+Working humidity             5% - 95%（Non-condensing）
+                  M14 PRO Installation guide
+
+
+2、Sroduct Structure
+
+   The M14 PRO   communicates with external devices via data jacks
+
+and data cables，As shown below。
+
+
+2.1 Product appearance
+
+
+
+
+2.2 Product size
+                  M14 PRO Installation guide
+
+
+2.3 Data socket
+
+
+
+
+2.4 Flexible cable
+                         M14 PRO Installation guide
+
+
+2.5 Structural components design points
+
+2.5.1 Structural components
+
+
+    The structure should be designed to be wide enough to prevent any
+
+components from opposing and touching the M14 PRO electronics. Need to have
+
+enough space to place the flexible cable, but also to leave the cable to restore the
+
+normal space required, will not make the cable is squeezed or damaged.
+
+
+
+2.5.2 Temperature
+
+
+    Electronic components, etc. will produce heat, especially in the case of
+
+continuous work, M14 PRO temperature will be higher. Please avoid the use of
+
+rubber and other insulation material winding M14 PRO shell.
+
+If conditions permit, you can add a certain number of thermal components
+
+
+
+2.5.3 Read the window
+
+
+    Reading the window requires protection of the camera, focus lights and lights.
+
+Reading the window must follow the following principles:
+
+1、The opaque part of the outer window should not block the lights, the focus lights
+
+and the camera
+
+2、Use high-wear-resistant materials such as double-sided hard-coated materials.
+
+3、It is recommended that the window glass be parallel to the lens and that the
+
+window must be perpendicular to the M14 PRO front plate and not more than 2
+
+mm.
+                          M14 PRO Installation guide
+
+
+
+
+4、If you want to tilt the design, the window glass distance must be greater than
+
+5mm, and the distance and tilt angle should ensure that the light is reflected by the
+
+glass light can not be reflected into the lens.
+                        M14 PRO Installation guide
+
+
+3、Hardware design
+     This section describes the M14 PRO       hardware interface definition and hardware
+reference design.
+
+
+3.1 Data interface definition
+
+ PIN     Input/output    Definitions      Explanation
+ PIN 1   －               －                -
+ PIN 2   power           VCC              Input power +5V。
+ PIN 3   GND             GND              GND & Signal ground
+ PIN 4   Input           RX               TTL serial port to receive the level signal,
+                                          need 10K resistor pull up.
+ PIN 5   Output          TX               TTL serial transmission level signal.
+ PIN 6   USB             DM               DATA-
+ PIN 7   USB             DP               DATA+
+ PIN 8   －               -                －
+ PIN 9   Output          BUZ              Buzzer signal output. Driving capacity is not
+                                          enough to directly drive the buzzer, there is
+                                          a need to use the buzzer drive circuit. This
+                                          pin is left floating when the signal is not
+                                          used.
+ PIN10   Output          LED              Indicator signal output. Driving capacity is
+                                          not enough direct drive indicator, there is a
+                                          need to use the external light driver circuit.
+                                          This pin is left floating when the signal is
+                                          not used.
+ PIN11   －               -                －
+ PIN12   Input           TRIG             Read      code     trigger   signal.   Continuous
+                                          output low for more than 20 ms Trigger the
+                                          M14 PRO          to start reading the bar code;
+                                          when the pin is high, the M14 PRO             will
+                                          stop reading. Requires 10K resistor pull-up.
+                     M14 PRO Installation guide
+
+
+4、Software design
+
+   The M14 PRO provides a rich set of commands to communicate with
+
+it. The host computer can configure the M14 PRO            through the
+
+command protocol set, the state query and the reading code and so on.
+
+   Specific code implementation please refer to the software reference
+
+design of the relevant source code and documentation ； 《 Barcode
+
+Scanner Control Protocol Command List》&《Barcode Scanner Control
+
+Protocol Structure Descriptions》。
+
+
+
+
+5、 Configuration tools and configuration
+bar code
+
+   The user can perform various operations on the M14 PRO            by
+
+configuring the tool or by reading the bar code.
+
+
+5.1 Configuration tools
+
+   The configuration tool provides a rich feature. Through the
+
+configuration tool, you can configure the M14 PRO , query status
+
+information, generate configuration bar code, access to images, firmware
+
+updates and other operations.
+
+   Please refer to the specific use《CodeBar Config Tool User Guide》。
+                    M14 PRO Installation guide
+
+
+5.2 Configuration bar code
+
+   Users can configure the bar code M14 PRO by the corresponding
+
+configuration, you can use the configuration tool to generate the
+
+corresponding configuration bar code。
+
+   Please refer to the specific use《CodeBar Config Tool User
+
+   Guide》。
+

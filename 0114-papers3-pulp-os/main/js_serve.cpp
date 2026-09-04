@@ -21,7 +21,7 @@ char s_staged_path[kServeMaxPath];
 // ignored — serve.text/json/status already wrote the response slot.
 void JsServeInvokeRoute(int32_t cb_id) {
     g_dispatches++;
-    (void)CallCb(cb_id, 1, 0, 0, 1);
+    (void)CallCbIn(g_os, cb_id, 1, 0, 0, 1);  // routes are OS-owned
 }
 
 extern "C" {

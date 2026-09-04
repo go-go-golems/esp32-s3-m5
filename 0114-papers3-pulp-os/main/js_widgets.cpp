@@ -28,16 +28,17 @@ JSValue js_pulp_text(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
         return JS_ThrowTypeError(ctx, "text(value|fn)");
     }
     int32_t dyn_cb = 0;
+    JsCtxState *st = StateOf(ctx);
     char text[s3paper::TextProps::kCapacity] = {};
     if (JS_IsFunction(ctx, argv[0])) {
-        if (g_dyn_count >= kMaxDynValues) {
+        if (st->dyn_count >= kMaxDynValues) {
             return JS_ThrowTypeError(ctx, "dynamic value table full");
         }
         dyn_cb = RegisterCb(ctx, argv[0]);
         if (dyn_cb == 0) {
             return JS_EXCEPTION;
         }
-        const JSValue v = CallCb(dyn_cb, 0, 0, 0, 0);
+        const JSValue v = CallCbIn(st, dyn_cb, 0, 0, 0, 0);
         if (!JS_IsUndefined(v)) {
             JSCStringBuf buf;
             size_t len;
@@ -56,7 +57,7 @@ JSValue js_pulp_text(JSContext *ctx, JSValue *, int argc, JSValue *argv) {
     const s3paper::Result<s3paper::WidgetHandle> r = s3paper::NewText(
         s3paper_runtime::Arena(), text, s3paper::kFontBody, 0);
     if (r.ok() && dyn_cb != 0) {
-        g_dyn[g_dyn_count++] = DynEntry{r.value, dyn_cb};
+        st->dyn[st->dyn_count++] = DynEntry{r.value, dyn_cb};
     }
     ESP_LOGD(kTag, "text[%u.%u] \"%s\"", r.ok() ? r.value.index : 9999,
              r.ok() ? r.value.generation : 0, text);

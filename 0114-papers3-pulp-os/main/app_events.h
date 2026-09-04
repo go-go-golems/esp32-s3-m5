@@ -42,7 +42,10 @@ enum class ModuleId : uint8_t {
     Wifi,
     Http,
     Serve,
-    Auth,
+    Images,  // ESP-54 image upload completion
+    Apps,    // ESP-55 app upload completion
+    Nav,     // ESP-55 P9 page navigation request
+    Mdns,    // ESP-58 mDNS browse completion
     kCount,
 };
 
@@ -53,13 +56,15 @@ enum ModuleDoneKind : int32_t {
     kDoneWifiJoin = 2,
     kDoneHttp = 3,
     kDoneServeRequest = 4,
-    kDoneAuthDeviceCode = 20,
-    kDoneAuthTokenPoll = 21,
     kDoneFilesList = 10,
     kDoneFilesRead = 11,
     kDoneFilesWrite = 12,
     kDoneFilesAppend = 13,
     kDoneFilesRemove = 14,
+    kDoneImagesUpload = 20,  // ESP-54: value = bytes, err = 0 ok
+    kDoneAppsUpload = 30,    // ESP-55: value = bytes, err 0 ok/1 card/2 short
+    kDoneNavRequest = 40,    // ESP-55 P9: value = 1 go / 2 back / 3 reload
+    kDoneMdnsBrowse = 50,    // ESP-58: value = servers found, err 0 ok/1 no wifi
 };
 
 const char *AppEventKindName(AppEventKind kind);
@@ -94,8 +99,12 @@ enum class ConsoleOp : uint8_t {
              //      2 = abort, 3 = print body head
     Serve,   // arg: 0 = status, 1 = start (arg2 = port),
              //      2 = stop, 3 = mount /sdcard/www
-    Auth,    // arg: 0 = status, 1 = start, 2 = clear
-    Socket,  // arg: 0 = status, 1 = start configured URL, 2 = stop
+    Battery, // arg: 0 = status (level/mv/charging printed)  [ESP-54]
+    Mdns,    // arg: 0 = status, 1 = announce (arg2 = port),  [ESP-54]
+             //      2 = stop
+    Images,  // arg: 0 = status, 1 = list, 2 = display (str_a = name), [ESP-54]
+             //      3 = remove (str_a = name), 4 = received cb status
+    Shot,    // stream the framebuffer as QOI over USB serial [ESP-56]
 };
 
 enum class PointerPhase : uint8_t {
@@ -256,23 +265,19 @@ struct ServeSnapshot {
     char url[32];
 };
 
-struct AuthSnapshot {
-    uint8_t state;
-    uint8_t in_flight;
-    uint16_t token_len;  // length only; token bytes never leave net_auth
-    int32_t grant_left;
-    int32_t token_left;
-    int32_t poll_left;
-    char user_code[24];
-    char error[40];
+// ESP-54 mDNS + image gallery snapshots.
+struct MdnsSnapshot {
+    uint8_t announced;   // 0 off, 1 announced
+    uint16_t port;
+    char host[24];       // "pulp"
+    char url[40];        // "http://pulp.local" or ""
 };
 
-struct SocketSnapshot {
-    uint8_t state;
-    uint32_t received;
-    uint32_t dropped;
-    uint32_t ring_count;
-    char error[48];
+struct ImagesSnapshot {
+    uint8_t sd_ok;       // 1 = /sdcard/images mounted & writable
+    uint32_t count;      // images on the card
+    uint32_t last_bytes; // last upload byte count
+    uint8_t upload_busy; // 1 = a POST upload is in flight
 };
 
 struct BuzzSnapshot {
@@ -288,6 +293,9 @@ struct JsSnapshot {
     uint8_t initialized;
     uint8_t screen_active;
     uint32_t arena_bytes;
+    uint32_t arena_used;  // ESP-55: JS_GetHeapUsed at snapshot time
+    uint32_t loads;         // ESP-55 P3: load() invocations
+    uint32_t last_load_ms;  // ESP-55 P3: wall time of the last load()
     uint32_t evals;
     uint32_t exceptions;
     uint32_t dispatches;
@@ -310,8 +318,8 @@ struct AppReply {
         NetSnapshot net;
         HttpSnapshot http;
         ServeSnapshot serve;
-        AuthSnapshot auth;
-        SocketSnapshot socket;
+        MdnsSnapshot mdns;       // ESP-54
+        ImagesSnapshot images;  // ESP-54
         int64_t echo_monotonic_us;  // Ping
     } payload;
 };

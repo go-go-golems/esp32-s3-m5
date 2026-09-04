@@ -156,19 +156,29 @@ void BlitCoverage(const uint8_t *coverage, const GlyphRaster &raster,
                 } else {
                     c = static_cast<uint8_t>((c >> 4) * 17);  // 16 levels
                 }
-                // Composite text_gray over an assumed white background.
-                v = static_cast<uint8_t>(255 -
-                                         ((255 - text_gray) * c) / 255);
+                // Composite text_gray over the assumed background. Dark
+                // ink assumes white paper (skip untouched = 255); light
+                // ink is the INVERTED-chip case (ESP-56): composite over
+                // black and skip untouched = 0 — before this, white
+                // glyphs computed to all-255, every pixel was treated as
+                // background, and inverted chips rendered as blank slabs.
+                if (text_gray < 128) {
+                    v = static_cast<uint8_t>(
+                        255 - ((255 - text_gray) * c) / 255);
+                } else {
+                    v = static_cast<uint8_t>((text_gray * c) / 255);
+                }
             } else {
-                v = 255;  // sentinel: flush at end of row
+                v = text_gray < 128 ? 255 : 0;  // sentinel: flush row end
             }
+            const uint8_t skip = text_gray < 128 ? 255 : 0;
             if (run_start >= 0 && v != run_value) {
                 M5.Display.writeFastHLine(x0 + run_start, y0 + row,
                                           col - run_start,
                                           GrayToColor(run_value));
                 run_start = -1;
             }
-            if (col < raster.width && v != 255 && run_start < 0) {
+            if (col < raster.width && v != skip && run_start < 0) {
                 run_start = col;
                 run_value = v;
             }
@@ -399,10 +409,55 @@ PresentResult M5Backend::Present(const RenderFrame &frame,
                 result.ops_drawn++;
                 break;
             }
-            case DrawOpKind::Bitmap:
-                // Explicitly unsupported in Phase 2.
-                result.ops_skipped++;
+            case DrawOpKind::Bitmap: {
+                // ESP-54: packed 4-bit grayscale bitmap (2 px/byte, high
+                // nibble first). Unpack to RGB565 gray and push one row at
+                // a time within the op clip rect. The pixel data lives in
+                // the frame arena (copied at emit time, GlyphRun pattern).
+                const BitmapPayload &b = op.payload.bitmap;
+                if (frame.arena == nullptr || b.data_len == 0) {
+                    result.ops_skipped++;
+                    break;
+                }
+                const uint8_t *data = frame.arena->Data(b.data_offset);
+                const int32_t w = op.bounds.w;
+                const int32_t h = op.bounds.h;
+                if (w <= 0 || h <= 0 || w > 540) {
+                    result.ops_skipped++;
+                    break;
+                }
+                // One-row RGB565 scratch in PSRAM (reused across ops).
+                static uint16_t *row = nullptr;
+                static int32_t row_cap = 0;
+                if (row == nullptr || row_cap < w) {
+                    if (row != nullptr) {
+                        heap_caps_free(row);
+                    }
+                    row = static_cast<uint16_t *>(heap_caps_malloc(
+                        w * 2, MALLOC_CAP_SPIRAM));
+                    row_cap = w;
+                    if (row == nullptr) {
+                        result.ops_skipped++;
+                        break;
+                    }
+                }
+                const uint8_t *src = data;
+                for (int32_t y = 0; y < h; ++y) {
+                    const uint8_t *s = src + y * b.stride;
+                    for (int32_t x = 0; x < w; ++x) {
+                        const uint8_t nib =
+                            (x & 1) ? (s[x >> 1] & 0x0F)
+                                    : (s[x >> 1] >> 4);
+                        // 0..15 -> 0..255 gray -> RGB565
+                        const uint8_t g = (nib * 255) / 15;
+                        row[x] = M5.Display.color565(g, g, g);
+                    }
+                    M5.Display.pushImage(op.bounds.x, op.bounds.y + y,
+                                         w, 1, row);
+                }
+                result.ops_drawn++;
                 break;
+            }
         }
     }
     M5.Display.clearClipRect();

@@ -1,0 +1,458 @@
+[     2][I][esp32-hal-psram.c:106] psramAddToHeap(): PSRAM addedESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x15 (USB_UART_CHIP_RESET),boot:0x28 (SPI_FAST_FLASH_BOOT)
+Saved PC:0x4037957e
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce2820,len:0x10cc
+load:0x403c8700,len:0xc2c
+load:0x403cb700,len:0x30b0
+entry 0x403c88b8
+[     2][I][esp32-hal-psram.c:106] psramAddToHeap(): PSRAM added to the heap.
+[    21][I][M5GFX.cpp:1031] init_impl(): [M5GFX] [Autodetect] load from NVS : board:27
+[    30][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[    44][I][M5GFX.cpp:1751] autodetect(): [M5GFX] [Autodetect] board_M5StackChan
+[   204][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[   216][I][M5GFX.cpp:565] initPanelByTouchVersion(): [M5GFX] CoreS3 touch CIPHER:0x64 / FIRMID:0x10 / VENDID:0x11, panel:ILI9342C
+[   228][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[   273][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[   284][I][esp32-hal-i2c-ng.c:112] i2cInit(): Initializing I2C Master: num=1 sda=12 scl=11 freq=100000
+[  1196][I][M5StackChan.cpp:158] get_zero_pos_from_nvs(): [M5StackChan] Servo ID: 1 get zero pos: 446 from settings
+[  1218][I][M5StackChan.cpp:158] get_zero_pos_from_nvs(): [M5StackChan] Servo ID: 2 get zero pos: 652 from settings
+[  1240][I][adapter_i2c.cpp:697] I2CClassImpl(): I2C_Class SDA:12, SCL:11
+M5_PHASE phase=init ok=1 elapsed_ms=122 txns=335 succeeded=335 failed=0 dropped=0 cumulative_txns=335 cumulative_failed=0
+M5_MULTI_READY place up to four tags on literal top edge
+M5_TAG cycle=1 index=0 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=1
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=148 txns=706 succeeded=706 failed=0 dropped=0 cumulative_txns=1041 cumulative_failed=0
+M5_MULTI cycle=1 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=1 elapsed_ms=148 txns=706 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=615 succeeded=615 failed=0 dropped=0 cumulative_txns=1656 cumulative_failed=0
+M5_MULTI cycle=2 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=130 txns=615 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=2267 cumulative_failed=0
+M5_MULTI cycle=3 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=1 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_TAG cycle=4 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=1
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=149 txns=714 succeeded=714 failed=0 dropped=0 cumulative_txns=2981 cumulative_failed=0
+M5_MULTI cycle=4 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=2 elapsed_ms=149 txns=714 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=615 succeeded=615 failed=0 dropped=0 cumulative_txns=3596 cumulative_failed=0
+M5_MULTI cycle=5 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=615 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=4210 cumulative_failed=0
+M5_MULTI cycle=6 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=4818 cumulative_failed=0
+M5_MULTI cycle=7 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=5429 cumulative_failed=0
+M5_MULTI cycle=8 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=6037 cumulative_failed=0
+M5_MULTI cycle=9 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=6642 cumulative_failed=0
+M5_MULTI cycle=10 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=628 succeeded=628 failed=0 dropped=0 cumulative_txns=7270 cumulative_failed=0
+M5_MULTI cycle=11 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=134 txns=628 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=640 succeeded=640 failed=0 dropped=0 cumulative_txns=7910 cumulative_failed=0
+M5_MULTI cycle=12 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=134 txns=640 failed=0 dropped=0
+M5_TAG cycle=13 index=0 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=2
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=708 succeeded=708 failed=0 dropped=0 cumulative_txns=8618 cumulative_failed=0
+M5_MULTI cycle=13 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=2 elapsed_ms=150 txns=708 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=609 succeeded=609 failed=0 dropped=0 cumulative_txns=9227 cumulative_failed=0
+M5_MULTI cycle=14 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=609 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=9835 cumulative_failed=0
+M5_MULTI cycle=15 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=10452 cumulative_failed=0
+M5_MULTI cycle=16 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=11060 cumulative_failed=0
+M5_MULTI cycle=17 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=2 elapsed_ms=130 txns=608 failed=0 dropped=0
+[  9422][E][nfc_layer_a.cpp:316] reactivate(): Failed to wakeup
+M5_TAG cycle=18 index=0 uid=0491D44C9E6180 identified=0 type="MIFARE Ultralight" atqa=0044 sak=00 observations=1
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=143 txns=664 succeeded=664 failed=0 dropped=0 cumulative_txns=11724 cumulative_failed=0
+M5_MULTI cycle=18 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=0 seen=3 elapsed_ms=143 txns=664 failed=0 dropped=0
+M5_TAG cycle=19 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=2
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=712 succeeded=712 failed=0 dropped=0 cumulative_txns=12436 cumulative_failed=0
+M5_MULTI cycle=19 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=150 txns=712 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=615 succeeded=615 failed=0 dropped=0 cumulative_txns=13051 cumulative_failed=0
+M5_MULTI cycle=20 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=615 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=13668 cumulative_failed=0
+M5_MULTI cycle=21 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=14285 cumulative_failed=0
+M5_MULTI cycle=22 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+[ 11818][E][nfc_layer_a.cpp:301] activate(): Failed to activate
+[ 11818][E][nfc_layer_a.cpp:320] reactivate(): Failed to activate
+M5_TAG cycle=23 index=0 uid=04DAF74D9E6180 identified=0 type="MIFARE Ultralight" atqa=0044 sak=00 observations=3
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=155 txns=711 succeeded=711 failed=0 dropped=0 cumulative_txns=14996 cumulative_failed=0
+M5_MULTI cycle=23 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=0 seen=3 elapsed_ms=155 txns=711 failed=0 dropped=0
+M5_TAG cycle=24 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=2
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=149 txns=715 succeeded=715 failed=0 dropped=0 cumulative_txns=15711 cumulative_failed=0
+M5_MULTI cycle=24 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=149 txns=715 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=609 succeeded=609 failed=0 dropped=0 cumulative_txns=16320 cumulative_failed=0
+M5_MULTI cycle=25 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=609 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=16937 cumulative_failed=0
+M5_MULTI cycle=26 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+[ 13755][E][nfc_layer_a.cpp:301] activate(): Failed to activate
+[ 13755][E][nfc_layer_a.cpp:320] reactivate(): Failed to activate
+M5_TAG cycle=27 index=0 uid=0491D44C9E6180 identified=0 type="MIFARE Ultralight" atqa=0044 sak=00 observations=3
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=154 txns=711 succeeded=711 failed=0 dropped=0 cumulative_txns=17648 cumulative_failed=0
+M5_MULTI cycle=27 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=0 seen=3 elapsed_ms=154 txns=711 failed=0 dropped=0
+M5_TAG cycle=28 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=4
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=164 txns=780 succeeded=780 failed=0 dropped=0 cumulative_txns=18428 cumulative_failed=0
+M5_MULTI cycle=28 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=164 txns=780 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=19040 cumulative_failed=0
+M5_MULTI cycle=29 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=19651 cumulative_failed=0
+M5_MULTI cycle=30 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=20265 cumulative_failed=0
+M5_MULTI cycle=31 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=20882 cumulative_failed=0
+M5_MULTI cycle=32 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=21490 cumulative_failed=0
+M5_MULTI cycle=33 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=22098 cumulative_failed=0
+M5_MULTI cycle=34 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=22706 cumulative_failed=0
+M5_MULTI cycle=35 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=625 succeeded=625 failed=0 dropped=0 cumulative_txns=23331 cumulative_failed=0
+M5_MULTI cycle=36 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=134 txns=625 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=631 succeeded=631 failed=0 dropped=0 cumulative_txns=23962 cumulative_failed=0
+M5_MULTI cycle=37 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=134 txns=631 failed=0 dropped=0
+M5_TAG cycle=38 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=5
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=711 succeeded=711 failed=0 dropped=0 cumulative_txns=24673 cumulative_failed=0
+M5_MULTI cycle=38 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=150 txns=711 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=25285 cumulative_failed=0
+M5_MULTI cycle=39 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=25899 cumulative_failed=0
+M5_MULTI cycle=40 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=26507 cumulative_failed=0
+M5_MULTI cycle=41 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+[ 20937][E][nfc_layer_a.cpp:301] activate(): Failed to activate
+[ 20937][E][nfc_layer_a.cpp:320] reactivate(): Failed to activate
+M5_TAG cycle=42 index=0 uid=04ACE84D9E6180 identified=0 type="MIFARE Ultralight" atqa=0044 sak=00 observations=3
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=156 txns=711 succeeded=711 failed=0 dropped=0 cumulative_txns=27218 cumulative_failed=0
+M5_MULTI cycle=42 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=0 seen=3 elapsed_ms=156 txns=711 failed=0 dropped=0
+M5_TAG cycle=43 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=4
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=712 succeeded=712 failed=0 dropped=0 cumulative_txns=27930 cumulative_failed=0
+M5_MULTI cycle=43 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=150 txns=712 failed=0 dropped=0
+M5_TAG cycle=44 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=5
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=149 txns=706 succeeded=706 failed=0 dropped=0 cumulative_txns=28636 cumulative_failed=0
+M5_MULTI cycle=44 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=149 txns=706 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=610 succeeded=610 failed=0 dropped=0 cumulative_txns=29246 cumulative_failed=0
+M5_MULTI cycle=45 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=610 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=29857 cumulative_failed=0
+M5_MULTI cycle=46 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=30468 cumulative_failed=0
+M5_MULTI cycle=47 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=31073 cumulative_failed=0
+M5_MULTI cycle=48 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=31684 cumulative_failed=0
+M5_MULTI cycle=49 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=32298 cumulative_failed=0
+M5_MULTI cycle=50 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=32906 cumulative_failed=0
+M5_MULTI cycle=51 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=33517 cumulative_failed=0
+M5_MULTI cycle=52 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=34128 cumulative_failed=0
+M5_MULTI cycle=53 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=34742 cumulative_failed=0
+M5_MULTI cycle=54 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=35353 cumulative_failed=0
+M5_MULTI cycle=55 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=35961 cumulative_failed=0
+M5_MULTI cycle=56 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=36569 cumulative_failed=0
+M5_MULTI cycle=57 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=37174 cumulative_failed=0
+M5_MULTI cycle=58 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=609 succeeded=609 failed=0 dropped=0 cumulative_txns=37783 cumulative_failed=0
+M5_MULTI cycle=59 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=609 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=38391 cumulative_failed=0
+M5_MULTI cycle=60 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=39008 cumulative_failed=0
+M5_MULTI cycle=61 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=39619 cumulative_failed=0
+M5_MULTI cycle=62 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=602 succeeded=602 failed=0 dropped=0 cumulative_txns=40221 cumulative_failed=0
+M5_MULTI cycle=63 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=602 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=40832 cumulative_failed=0
+M5_MULTI cycle=64 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=41443 cumulative_failed=0
+M5_MULTI cycle=65 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=42051 cumulative_failed=0
+M5_MULTI cycle=66 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=42663 cumulative_failed=0
+M5_MULTI cycle=67 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=43271 cumulative_failed=0
+M5_MULTI cycle=68 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=618 succeeded=618 failed=0 dropped=0 cumulative_txns=43889 cumulative_failed=0
+M5_MULTI cycle=69 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=618 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=44503 cumulative_failed=0
+M5_MULTI cycle=70 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=45114 cumulative_failed=0
+M5_MULTI cycle=71 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=45726 cumulative_failed=0
+M5_MULTI cycle=72 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=46334 cumulative_failed=0
+M5_MULTI cycle=73 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=609 succeeded=609 failed=0 dropped=0 cumulative_txns=46943 cumulative_failed=0
+M5_MULTI cycle=74 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=131 txns=609 failed=0 dropped=0
+M5_TAG cycle=75 index=0 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=4
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=705 succeeded=705 failed=0 dropped=0 cumulative_txns=47648 cumulative_failed=0
+M5_MULTI cycle=75 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=150 txns=705 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=615 succeeded=615 failed=0 dropped=0 cumulative_txns=48263 cumulative_failed=0
+M5_MULTI cycle=76 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=615 failed=0 dropped=0
+M5_TAG cycle=77 index=0 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=5
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=149 txns=708 succeeded=708 failed=0 dropped=0 cumulative_txns=48971 cumulative_failed=0
+M5_MULTI cycle=77 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=3 elapsed_ms=149 txns=708 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=49583 cumulative_failed=0
+M5_MULTI cycle=78 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=50197 cumulative_failed=0
+M5_MULTI cycle=79 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=50811 cumulative_failed=0
+M5_MULTI cycle=80 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=51428 cumulative_failed=0
+M5_MULTI cycle=81 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=52045 cumulative_failed=0
+M5_MULTI cycle=82 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=52656 cumulative_failed=0
+M5_MULTI cycle=83 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=53270 cumulative_failed=0
+M5_MULTI cycle=84 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=3 elapsed_ms=130 txns=614 failed=0 dropped=0
+[ 41487][E][nfc_layer_a.cpp:301] activate(): Failed to activate
+[ 41488][E][nfc_layer_a.cpp:320] reactivate(): Failed to activate
+M5_TAG cycle=85 index=0 uid=04C9C54C9E6180 identified=0 type="MIFARE Ultralight" atqa=0044 sak=00 observations=1
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=155 txns=705 succeeded=705 failed=0 dropped=0 cumulative_txns=53975 cumulative_failed=0
+M5_MULTI cycle=85 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=0 seen=4 elapsed_ms=155 txns=705 failed=0 dropped=0
+M5_TAG cycle=86 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=6
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=163 txns=774 succeeded=774 failed=0 dropped=0 cumulative_txns=54749 cumulative_failed=0
+M5_MULTI cycle=86 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=163 txns=774 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=55361 cumulative_failed=0
+M5_MULTI cycle=87 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=55975 cumulative_failed=0
+M5_MULTI cycle=88 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=56586 cumulative_failed=0
+M5_MULTI cycle=89 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=57200 cumulative_failed=0
+M5_MULTI cycle=90 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=57811 cumulative_failed=0
+M5_MULTI cycle=91 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=58419 cumulative_failed=0
+M5_MULTI cycle=92 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=59030 cumulative_failed=0
+M5_MULTI cycle=93 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=59641 cumulative_failed=0
+M5_MULTI cycle=94 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=60252 cumulative_failed=0
+M5_MULTI cycle=95 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=60863 cumulative_failed=0
+M5_MULTI cycle=96 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=61480 cumulative_failed=0
+M5_MULTI cycle=97 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=62088 cumulative_failed=0
+M5_MULTI cycle=98 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=62702 cumulative_failed=0
+M5_MULTI cycle=99 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=63313 cumulative_failed=0
+M5_MULTI cycle=100 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=63924 cumulative_failed=0
+M5_MULTI cycle=101 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=64535 cumulative_failed=0
+M5_MULTI cycle=102 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=65143 cumulative_failed=0
+M5_MULTI cycle=103 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=65757 cumulative_failed=0
+M5_MULTI cycle=104 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=66368 cumulative_failed=0
+M5_MULTI cycle=105 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=66979 cumulative_failed=0
+M5_MULTI cycle=106 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=67584 cumulative_failed=0
+M5_MULTI cycle=107 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=68198 cumulative_failed=0
+M5_MULTI cycle=108 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=68809 cumulative_failed=0
+M5_MULTI cycle=109 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=69417 cumulative_failed=0
+M5_MULTI cycle=110 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=70028 cumulative_failed=0
+M5_MULTI cycle=111 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=70639 cumulative_failed=0
+M5_MULTI cycle=112 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=71250 cumulative_failed=0
+M5_MULTI cycle=113 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=71861 cumulative_failed=0
+M5_MULTI cycle=114 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=72475 cumulative_failed=0
+M5_MULTI cycle=115 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=73080 cumulative_failed=0
+M5_MULTI cycle=116 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=73694 cumulative_failed=0
+M5_MULTI cycle=117 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=74305 cumulative_failed=0
+M5_MULTI cycle=118 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=74913 cumulative_failed=0
+M5_MULTI cycle=119 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=75524 cumulative_failed=0
+M5_MULTI cycle=120 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=76132 cumulative_failed=0
+M5_MULTI cycle=121 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=76743 cumulative_failed=0
+M5_MULTI cycle=122 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=77357 cumulative_failed=0
+M5_MULTI cycle=123 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=77968 cumulative_failed=0
+M5_MULTI cycle=124 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=78573 cumulative_failed=0
+M5_MULTI cycle=125 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=79187 cumulative_failed=0
+M5_MULTI cycle=126 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=79798 cumulative_failed=0
+M5_MULTI cycle=127 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=80403 cumulative_failed=0
+M5_MULTI cycle=128 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_TAG cycle=129 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=7
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=156 txns=745 succeeded=745 failed=0 dropped=0 cumulative_txns=81148 cumulative_failed=0
+M5_MULTI cycle=129 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=156 txns=745 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=27 txns=136 succeeded=136 failed=0 dropped=0 cumulative_txns=81284 cumulative_failed=0
+M5_MULTI cycle=130 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=27 txns=136 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=629 succeeded=629 failed=0 dropped=0 cumulative_txns=81913 cumulative_failed=0
+M5_MULTI cycle=131 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=134 txns=629 failed=0 dropped=0
+M5_TAG cycle=132 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=6
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=149 txns=714 succeeded=714 failed=0 dropped=0 cumulative_txns=82627 cumulative_failed=0
+M5_MULTI cycle=132 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=149 txns=714 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=83239 cumulative_failed=0
+M5_MULTI cycle=133 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_TAG cycle=134 index=0 uid=04C9C54C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=2
+M5_TAG cycle=134 index=1 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=8
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=169 txns=806 succeeded=806 failed=0 dropped=0 cumulative_txns=84045 cumulative_failed=0
+M5_MULTI cycle=134 woke=1 wake_atqa=0044 detected=1 piccs=2 displayed=2 identified=2 seen=4 elapsed_ms=169 txns=806 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=615 succeeded=615 failed=0 dropped=0 cumulative_txns=84660 cumulative_failed=0
+M5_MULTI cycle=135 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=615 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=85271 cumulative_failed=0
+M5_MULTI cycle=136 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=85882 cumulative_failed=0
+M5_MULTI cycle=137 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_TAG cycle=138 index=0 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=6
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=148 txns=705 succeeded=705 failed=0 dropped=0 cumulative_txns=86587 cumulative_failed=0
+M5_MULTI cycle=138 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=148 txns=705 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=87199 cumulative_failed=0
+M5_MULTI cycle=139 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_TAG cycle=140 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=9
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=82 txns=406 succeeded=406 failed=0 dropped=0 cumulative_txns=87605 cumulative_failed=0
+M5_MULTI cycle=140 woke=1 wake_atqa=0044 detected=0 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=82 txns=406 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=88217 cumulative_failed=0
+M5_MULTI cycle=141 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_TAG cycle=142 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=7
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=708 succeeded=708 failed=0 dropped=0 cumulative_txns=88925 cumulative_failed=0
+M5_MULTI cycle=142 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=150 txns=708 failed=0 dropped=0
+M5_TAG cycle=143 index=0 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=7
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=151 txns=712 succeeded=712 failed=0 dropped=0 cumulative_txns=89637 cumulative_failed=0
+M5_MULTI cycle=143 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=151 txns=712 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=90249 cumulative_failed=0
+M5_MULTI cycle=144 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=90857 cumulative_failed=0
+M5_MULTI cycle=145 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=91465 cumulative_failed=0
+M5_MULTI cycle=146 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=92073 cumulative_failed=0
+M5_MULTI cycle=147 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=92687 cumulative_failed=0
+M5_MULTI cycle=148 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=93295 cumulative_failed=0
+M5_MULTI cycle=149 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=93906 cumulative_failed=0
+M5_MULTI cycle=150 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=94517 cumulative_failed=0
+M5_MULTI cycle=151 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=95125 cumulative_failed=0
+M5_MULTI cycle=152 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=95737 cumulative_failed=0
+M5_MULTI cycle=153 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=27 txns=135 succeeded=135 failed=0 dropped=0 cumulative_txns=95872 cumulative_failed=0
+M5_MULTI cycle=154 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=27 txns=135 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=638 succeeded=638 failed=0 dropped=0 cumulative_txns=96510 cumulative_failed=0
+M5_MULTI cycle=155 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=134 txns=638 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=634 succeeded=634 failed=0 dropped=0 cumulative_txns=97144 cumulative_failed=0
+M5_MULTI cycle=156 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=134 txns=634 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=634 succeeded=634 failed=0 dropped=0 cumulative_txns=97778 cumulative_failed=0
+M5_MULTI cycle=157 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=134 txns=634 failed=0 dropped=0
+M5_TAG cycle=158 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=8
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=708 succeeded=708 failed=0 dropped=0 cumulative_txns=98486 cumulative_failed=0
+M5_MULTI cycle=158 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=150 txns=708 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=618 succeeded=618 failed=0 dropped=0 cumulative_txns=99104 cumulative_failed=0
+M5_MULTI cycle=159 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=618 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=134 txns=631 succeeded=631 failed=0 dropped=0 cumulative_txns=99735 cumulative_failed=0
+M5_MULTI cycle=160 woke=0 wake_atqa=0000 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=134 txns=631 failed=0 dropped=0
+M5_TAG cycle=161 index=0 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=9
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=150 txns=714 succeeded=714 failed=0 dropped=0 cumulative_txns=100449 cumulative_failed=0
+M5_MULTI cycle=161 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=150 txns=714 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=26 txns=132 succeeded=132 failed=0 dropped=0 cumulative_txns=100581 cumulative_failed=0
+M5_MULTI cycle=162 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=26 txns=132 failed=0 dropped=0
+M5_TAG cycle=163 index=0 uid=0491D44C9E6180 identified=1 type="NTAG 215" atqa=5100 sak=00 observations=10
+M5_TAG cycle=163 index=1 uid=04ACE84D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=10
+M5_TAG cycle=163 index=2 uid=04DAF74D9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=8
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=186 txns=902 succeeded=902 failed=0 dropped=0 cumulative_txns=101483 cumulative_failed=0
+M5_MULTI cycle=163 woke=1 wake_atqa=5100 detected=1 piccs=3 displayed=3 identified=3 seen=4 elapsed_ms=186 txns=902 failed=0 dropped=0
+M5_TAG cycle=164 index=0 uid=04C9C54C9E6180 identified=1 type="NTAG 215" atqa=0044 sak=00 observations=3
+M5_PHASE phase=multi_poll ok=1 elapsed_ms=153 txns=723 succeeded=723 failed=0 dropped=0 cumulative_txns=102206 cumulative_failed=0
+M5_MULTI cycle=164 woke=1 wake_atqa=0044 detected=1 piccs=1 displayed=1 identified=1 seen=4 elapsed_ms=153 txns=723 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=618 succeeded=618 failed=0 dropped=0 cumulative_txns=102824 cumulative_failed=0
+M5_MULTI cycle=165 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=618 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=602 succeeded=602 failed=0 dropped=0 cumulative_txns=103426 cumulative_failed=0
+M5_MULTI cycle=166 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=602 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=104037 cumulative_failed=0
+M5_MULTI cycle=167 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=104648 cumulative_failed=0
+M5_MULTI cycle=168 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=105259 cumulative_failed=0
+M5_MULTI cycle=169 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=105870 cumulative_failed=0
+M5_MULTI cycle=170 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=106481 cumulative_failed=0
+M5_MULTI cycle=171 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=107095 cumulative_failed=0
+M5_MULTI cycle=172 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=107703 cumulative_failed=0
+M5_MULTI cycle=173 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=612 succeeded=612 failed=0 dropped=0 cumulative_txns=108315 cumulative_failed=0
+M5_MULTI cycle=174 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=612 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=108920 cumulative_failed=0
+M5_MULTI cycle=175 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=109534 cumulative_failed=0
+M5_MULTI cycle=176 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=110145 cumulative_failed=0
+M5_MULTI cycle=177 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=110756 cumulative_failed=0
+M5_MULTI cycle=178 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=111367 cumulative_failed=0
+M5_MULTI cycle=179 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=111975 cumulative_failed=0
+M5_MULTI cycle=180 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=112583 cumulative_failed=0
+M5_MULTI cycle=181 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=113191 cumulative_failed=0
+M5_MULTI cycle=182 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=617 succeeded=617 failed=0 dropped=0 cumulative_txns=113808 cumulative_failed=0
+M5_MULTI cycle=183 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=617 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=605 succeeded=605 failed=0 dropped=0 cumulative_txns=114413 cumulative_failed=0
+M5_MULTI cycle=184 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=605 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=115027 cumulative_failed=0
+M5_MULTI cycle=185 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=115638 cumulative_failed=0
+M5_MULTI cycle=186 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=116249 cumulative_failed=0
+M5_MULTI cycle=187 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=116860 cumulative_failed=0
+M5_MULTI cycle=188 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=117471 cumulative_failed=0
+M5_MULTI cycle=189 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=118082 cumulative_failed=0
+M5_MULTI cycle=190 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=118696 cumulative_failed=0
+M5_MULTI cycle=191 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=614 succeeded=614 failed=0 dropped=0 cumulative_txns=119310 cumulative_failed=0
+M5_MULTI cycle=192 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=614 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=119921 cumulative_failed=0
+M5_MULTI cycle=193 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=120529 cumulative_failed=0
+M5_MULTI cycle=194 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=608 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=121140 cumulative_failed=0
+M5_MULTI cycle=195 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=130 txns=611 succeeded=611 failed=0 dropped=0 cumulative_txns=121751 cumulative_failed=0
+M5_MULTI cycle=196 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=130 txns=611 failed=0 dropped=0
+M5_PHASE phase=multi_poll ok=0 elapsed_ms=131 txns=608 succeeded=608 failed=0 dropped=0 cumulative_txns=122359 cumulative_failed=0
+M5_MULTI cycle=197 woke=1 wake_atqa=0044 detected=0 piccs=0 displayed=0 identified=0 seen=4 elapsed_ms=131 txns=608 failed=0 dropped=0

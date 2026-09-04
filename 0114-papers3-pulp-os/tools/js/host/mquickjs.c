@@ -3654,6 +3654,13 @@ void JS_SetContextOpaque(JSContext *ctx, void *opaque)
     ctx->opaque = opaque;
 }
 
+/* ESP-55 P8: paired getter (the opaque slot carries the host's
+   per-context binding state). */
+void *JS_GetContextOpaque(JSContext *ctx)
+{
+    return ctx->opaque;
+}
+
 void JS_SetInterruptHandler(JSContext *ctx, JSInterruptHandler *interrupt_handler)
 {
     ctx->interrupt_handler = interrupt_handler;
@@ -7101,6 +7108,13 @@ static __maybe_unused void JS_DumpUniqueStrings(JSContext *ctx)
 {
 }
 #endif
+
+/* ESP-55: arena bytes currently allocated on the heap side (excludes the
+   value stack). Cheap accessor for instrumentation; always compiled. */
+uint32_t JS_GetHeapUsed(JSContext *ctx)
+{
+    return (uint32_t)(ctx->heap_free - ctx->heap_base);
+}
 
 void JS_DumpValueF(JSContext *ctx, const char *str,
                    JSValue val, int flags)

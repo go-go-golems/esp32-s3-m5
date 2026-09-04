@@ -1,0 +1,9 @@
+qr trig low
+I (53248) qr_module: TRIG=LOW
+trig-low: ok
+cores3-qr>
+cores3-qr>  qr trig high
+I (58289) qr_module: TRIG=HIGH
+trig-high: ok
+cores3-qr>
+cores3-qr>

@@ -1,0 +1,6 @@
+smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag
+smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag
+smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag
+smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag
+smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag
+smoke version=0.1.0-dev tag=NTAG21x ndef=1 ok=1 err=transport/no-tag

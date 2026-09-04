@@ -1,0 +1,18 @@
+I (65836) qr_module: UART RX chunk: 10 bytes
+I (65836) qr_module: 0x3fcac880   58 30 30 35 32 4c 33 57  50 4e                    |X0052L3WPN|
+I (65896) qr_module: emit code: X0052L3WPN
+I (65904) qr_ui: code: X0052L3WPN
+qr status
+[qr status] probing...
+I (67756) qr_engine: tx 3 bytes
+I (67756) qr_engine: 0x3fcac720   43 02 c1                                          |C..|
+W (67776) qr_engine: getInfos id=0xc1 hdr_got=5 byte0=0x44
+W (67777) qr_engine: getInfos id=0xc1 data_len=3 data_got=3 -> '1.0'
+I (67807) qr_engine: tx 3 bytes
+I (67807) qr_engine: 0x3fcac720   43 02 c5                                          |C..|
+W (67827) qr_engine: getInfos id=0xc5 hdr_got=5 byte0=0x44
+W (67827) qr_engine: getInfos id=0xc5 data_len=0 data_got=0 -> ''
+qr firmware=1.0
+qr serial   =
+cores3-qr>
+cores3-qr>

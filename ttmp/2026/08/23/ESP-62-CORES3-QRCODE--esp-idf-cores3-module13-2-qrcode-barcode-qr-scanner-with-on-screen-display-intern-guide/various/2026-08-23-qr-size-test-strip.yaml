@@ -1,0 +1,92 @@
+almanach_studio_version: 1
+theme: brutalist
+paperWidth: 384
+bodyScale: 1
+feedLines: 8
+blocks:
+  - id: head
+    type: banner
+    data: { text: "QR SIZE TEST", right: "ESP-62", pad: "m" }
+  - id: intro
+    type: text
+    data:
+      text: "SCAN EACH CODE. PAYLOAD IDENTIFIES PRINTED SIZE IN PIXELS."
+      preset: body
+      lines: 3
+  - id: rule-0
+    type: rule
+    data: { weight: 3 }
+
+  - id: label-64
+    type: text
+    data: { text: "64 PX / ALM-QR-064", preset: h2, align: center }
+  - id: qr-64
+    type: qr
+    data: { value: "ALM-QR-064", size: 64, align: center }
+  - id: rule-64
+    type: rule
+    data: { weight: 1 }
+
+  - id: label-80
+    type: text
+    data: { text: "80 PX / ALM-QR-080", preset: h2, align: center }
+  - id: qr-80
+    type: qr
+    data: { value: "ALM-QR-080", size: 80, align: center }
+  - id: rule-80
+    type: rule
+    data: { weight: 1 }
+
+  - id: label-96
+    type: text
+    data: { text: "96 PX / ALM-QR-096", preset: h2, align: center }
+  - id: qr-96
+    type: qr
+    data: { value: "ALM-QR-096", size: 96, align: center }
+  - id: rule-96
+    type: rule
+    data: { weight: 1 }
+
+  - id: label-112
+    type: text
+    data: { text: "112 PX / ALM-QR-112", preset: h2, align: center }
+  - id: qr-112
+    type: qr
+    data: { value: "ALM-QR-112", size: 112, align: center }
+  - id: rule-112
+    type: rule
+    data: { weight: 1 }
+
+  - id: label-128
+    type: text
+    data: { text: "128 PX / ALM-QR-128", preset: h2, align: center }
+  - id: qr-128
+    type: qr
+    data: { value: "ALM-QR-128", size: 128, align: center }
+  - id: rule-128
+    type: rule
+    data: { weight: 1 }
+
+  - id: label-144
+    type: text
+    data: { text: "144 PX / ALM-QR-144", preset: h2, align: center }
+  - id: qr-144
+    type: qr
+    data: { value: "ALM-QR-144", size: 144, align: center }
+  - id: rule-144
+    type: rule
+    data: { weight: 1 }
+
+  - id: label-160
+    type: text
+    data: { text: "160 PX / ALM-QR-160", preset: h2, align: center }
+  - id: qr-160
+    type: qr
+    data: { value: "ALM-QR-160", size: 160, align: center }
+
+  - id: foot-rule
+    type: rule
+    data: { weight: 3 }
+  - id: foot
+    type: text
+    data: { text: "CORE S3 + MODULE13.2 / UART G13-G14", preset: micro, align: center }

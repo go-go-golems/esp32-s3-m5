@@ -107,6 +107,47 @@ PULP_JS_FN(js_pulp_store_set);
 PULP_JS_FN(js_pulp_append_postcard);
 PULP_JS_FN(js_pulp_battery_level);
 
+/* ESP-54 battery singleton: surfaces charging + mv already read by PowerRead. */
+PULP_JS_FN(js_battery_level);
+PULP_JS_FN(js_battery_mv);
+PULP_JS_FN(js_battery_charging);
+PULP_JS_FN(js_battery_status_text);
+
+/* ESP-54 mDNS singleton (read-only accessors). */
+PULP_JS_FN(js_mdns_status);
+PULP_JS_FN(js_mdns_host);
+PULP_JS_FN(js_mdns_url);
+PULP_JS_FN(js_mdns_browse);
+PULP_JS_FN(js_mdns_count);
+PULP_JS_FN(js_mdns_name);
+PULP_JS_FN(js_mdns_index_url);
+
+/* ESP-54 images singleton (gallery catalog + display + upload cb). */
+PULP_JS_FN(js_images_count);
+PULP_JS_FN(js_images_name);
+PULP_JS_FN(js_images_display);
+PULP_JS_FN(js_images_remove);
+PULP_JS_FN(js_images_received);
+
+/* ESP-55 P4/P5: apps singleton. */
+PULP_JS_FN(js_apps_count);
+PULP_JS_FN(js_apps_name);
+PULP_JS_FN(js_apps_copy);
+PULP_JS_FN(js_apps_write_text);
+PULP_JS_FN(js_apps_received);
+PULP_JS_FN(js_apps_upload_name);
+
+/* ESP-55 P9: nav (page-side) + browser (OS-side page runtime). */
+PULP_JS_FN(js_nav_go);
+PULP_JS_FN(js_nav_back);
+PULP_JS_FN(js_nav_reload);
+PULP_JS_FN(js_nav_url);
+PULP_JS_FN(js_browser_run);
+PULP_JS_FN(js_browser_close);
+PULP_JS_FN(js_browser_watch);
+PULP_JS_FN(js_browser_nav_url);
+PULP_JS_FN(js_browser_nav_kind);
+
 /* ESP-53 connectivity + peripherals. */
 PULP_JS_FN(js_buzzer_tone);
 PULP_JS_FN(js_buzzer_beep);

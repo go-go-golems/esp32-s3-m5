@@ -1,0 +1,5 @@
+dependencies:
+  m5stack/m5unified:
+    version: "~0.2.18"
+  m5stack/m5gfx:
+    version: "~0.2.25"

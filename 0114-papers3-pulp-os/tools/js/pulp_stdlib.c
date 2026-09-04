@@ -219,5 +219,94 @@ static const JSPropDef js_serve[] = {
 
 static const JSClassDef js_serve_obj = JS_OBJECT_DEF("Serve", js_serve);
 
+/* battery singleton (ESP-54): surfaces charging + mv already read by
+   s3paper::PowerRead(). Sync, owner-only, thin wrappers; batteryLevel()
+   remains the historical alias global. */
+static const JSPropDef js_battery[] = {
+    JS_CFUNC_DEF("level", 0, js_battery_level),
+    JS_CFUNC_DEF("mv", 0, js_battery_mv),
+    JS_CFUNC_DEF("charging", 0, js_battery_charging),
+    JS_CFUNC_DEF("statusText", 0, js_battery_status_text),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_battery_obj = JS_OBJECT_DEF("Battery", js_battery);
+
+/* mdns singleton (ESP-54, ESP-58): status/host/url are read-only
+   accessors (pulp.local announced by serve.start, withdrawn by
+   serve.stop/wifi.off). browse(fn) is the ESP-58 discovery verb:
+   fn(50, count, err), results via count()/name(i)/indexUrl(i). */
+static const JSPropDef js_mdns[] = {
+    JS_CFUNC_DEF("status", 0, js_mdns_status),
+    JS_CFUNC_DEF("host", 0, js_mdns_host),
+    JS_CFUNC_DEF("url", 0, js_mdns_url),
+    JS_CFUNC_DEF("browse", 1, js_mdns_browse),
+    JS_CFUNC_DEF("count", 0, js_mdns_count),
+    JS_CFUNC_DEF("name", 1, js_mdns_name),
+    JS_CFUNC_DEF("indexUrl", 1, js_mdns_index_url),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_mdns_obj = JS_OBJECT_DEF("Mdns", js_mdns);
+
+/* images singleton (ESP-54): gallery catalog + display + upload callback.
+   count/name/remove are sync; received(fn) registers the upload-completion
+   callback (the module-cb mailbox pattern). */
+static const JSPropDef js_images[] = {
+    JS_CFUNC_DEF("count", 0, js_images_count),
+    JS_CFUNC_DEF("name", 1, js_images_name),
+    JS_CFUNC_DEF("display", 1, js_images_display),
+    JS_CFUNC_DEF("remove", 1, js_images_remove),
+    JS_CFUNC_DEF("received", 1, js_images_received),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_images_obj = JS_OBJECT_DEF("Images", js_images);
+
+/* apps singleton (ESP-55 P4/P5): ROM asset registry (count/name/copy),
+   sync small-file text writes for seeding + manifests (writeText), and
+   the /apps/upload completion callback + name mailbox (received /
+   uploadName — the module-cb pattern, ModuleId::Apps). */
+static const JSPropDef js_apps[] = {
+    JS_CFUNC_DEF("count", 0, js_apps_count),
+    JS_CFUNC_DEF("name", 1, js_apps_name),
+    JS_CFUNC_DEF("copy", 2, js_apps_copy),
+    JS_CFUNC_DEF("writeText", 2, js_apps_write_text),
+    JS_CFUNC_DEF("received", 1, js_apps_received),
+    JS_CFUNC_DEF("uploadName", 0, js_apps_upload_name),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_apps_obj = JS_OBJECT_DEF("Apps", js_apps);
+
+/* nav singleton (ESP-55 P9): the ONLY outward surface of a sandboxed
+   page context. go/back/reload record a request in a native mailbox and
+   post a completion; the browser app (OS context) decides what happens.
+   url() reports the current page's address. */
+static const JSPropDef js_nav[] = {
+    JS_CFUNC_DEF("go", 1, js_nav_go),
+    JS_CFUNC_DEF("back", 0, js_nav_back),
+    JS_CFUNC_DEF("reload", 0, js_nav_reload),
+    JS_CFUNC_DEF("url", 0, js_nav_url),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_nav_obj = JS_OBJECT_DEF("Nav", js_nav);
+
+/* browser singleton (ESP-55 P9/P10): OS-side page runtime control. run()
+   creates a sandboxed page context and executes a page script in it;
+   watch() registers the nav-request completion (ModuleId::Nav). Denied
+   wholesale in the UI stdlib. */
+static const JSPropDef js_browser[] = {
+    JS_CFUNC_DEF("run", 2, js_browser_run),
+    JS_CFUNC_DEF("close", 0, js_browser_close),
+    JS_CFUNC_DEF("watch", 1, js_browser_watch),
+    JS_CFUNC_DEF("navUrl", 0, js_browser_nav_url),
+    JS_CFUNC_DEF("navKind", 0, js_browser_nav_kind),
+    JS_PROP_END,
+};
+
+static const JSClassDef js_browser_obj = JS_OBJECT_DEF("Browser", js_browser);
+
 #define CONFIG_PULP 1
 #include "mqjs_stdlib_pulp.c"

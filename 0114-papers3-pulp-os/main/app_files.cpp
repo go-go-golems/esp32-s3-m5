@@ -76,14 +76,19 @@ void EnsureParentDir(const char *real_path) {
     }
 }
 
-int32_t Post(int32_t kind, int32_t value, int32_t err) {
+// ESP-57: returns false when the completion could not be queued. The
+// caller MUST propagate that as a non-Ok status so the JS binding cancels
+// the registered callback — a completion that never queues means the
+// callback would otherwise wait forever (silent catalog-scan death).
+bool Post(int32_t kind, int32_t value, int32_t err) {
     const StatusCode posted =
         PostModuleDone(ModuleId::Files, kind, value, err);
     if (posted != StatusCode::Ok) {
         ESP_LOGW(kTag, "completion post failed: %s",
                  StatusCodeName(posted));
+        return false;
     }
-    return 0;
+    return true;
 }
 
 }  // namespace
@@ -141,8 +146,9 @@ FilesStatusCode FilesList(const char *virtual_path) {
     s_state.list_count = 0;
     DIR *dir = opendir(real);
     if (dir == nullptr) {
-        Post(kDoneFilesList, 0, errno != 0 ? errno : -1);
-        return FilesStatusCode::Ok;
+        return Post(kDoneFilesList, 0, errno != 0 ? errno : -1)
+                   ? FilesStatusCode::Ok
+                   : FilesStatusCode::CapacityExceeded;
     }
     uint32_t skipped = 0;
     struct dirent *entry;
@@ -176,8 +182,10 @@ FilesStatusCode FilesList(const char *virtual_path) {
         ESP_LOGW(kTag, "list %s: %u entries beyond cap dropped",
                  virtual_path, static_cast<unsigned>(skipped));
     }
-    Post(kDoneFilesList, static_cast<int32_t>(s_state.list_count), 0);
-    return FilesStatusCode::Ok;
+    return Post(kDoneFilesList,
+                static_cast<int32_t>(s_state.list_count), 0)
+               ? FilesStatusCode::Ok
+               : FilesStatusCode::CapacityExceeded;
 }
 
 FilesStatusCode FilesRead(const char *virtual_path) {
@@ -193,8 +201,9 @@ FilesStatusCode FilesRead(const char *virtual_path) {
     s_state.line_count = 0;
     FILE *f = fopen(real, "rb");
     if (f == nullptr) {
-        Post(kDoneFilesRead, 0, errno != 0 ? errno : -1);
-        return FilesStatusCode::Ok;
+        return Post(kDoneFilesRead, 0, errno != 0 ? errno : -1)
+                   ? FilesStatusCode::Ok
+                   : FilesStatusCode::CapacityExceeded;
     }
     const size_t got = fread(s_state.body, 1, kFilesMaxBody, f);
     fclose(f);
@@ -218,8 +227,10 @@ FilesStatusCode FilesRead(const char *virtual_path) {
         ref.len = static_cast<uint16_t>(i - start);
         start = i + 1;
     }
-    Post(kDoneFilesRead, static_cast<int32_t>(s_state.line_count), 0);
-    return FilesStatusCode::Ok;
+    return Post(kDoneFilesRead,
+                static_cast<int32_t>(s_state.line_count), 0)
+               ? FilesStatusCode::Ok
+               : FilesStatusCode::CapacityExceeded;
 }
 
 FilesStatusCode FilesWrite(const char *virtual_path, const char *body,
@@ -236,16 +247,18 @@ FilesStatusCode FilesWrite(const char *virtual_path, const char *body,
     EnsureParentDir(real);
     FILE *f = fopen(real, "wb");
     if (f == nullptr) {
-        Post(kDoneFilesWrite, 0, errno != 0 ? errno : -1);
-        return FilesStatusCode::Ok;
+        return Post(kDoneFilesWrite, 0, errno != 0 ? errno : -1)
+                   ? FilesStatusCode::Ok
+                   : FilesStatusCode::CapacityExceeded;
     }
     const size_t wrote = fwrite(body, 1, len, f);
     fflush(f);
     fsync(fileno(f));
     fclose(f);
-    Post(kDoneFilesWrite, static_cast<int32_t>(wrote),
-         wrote == len ? 0 : -1);
-    return FilesStatusCode::Ok;
+    return Post(kDoneFilesWrite, static_cast<int32_t>(wrote),
+                wrote == len ? 0 : -1)
+               ? FilesStatusCode::Ok
+               : FilesStatusCode::CapacityExceeded;
 }
 
 FilesStatusCode FilesAppend(const char *virtual_path, const char *line,
@@ -262,17 +275,19 @@ FilesStatusCode FilesAppend(const char *virtual_path, const char *line,
     EnsureParentDir(real);
     FILE *f = fopen(real, "ab");
     if (f == nullptr) {
-        Post(kDoneFilesAppend, 0, errno != 0 ? errno : -1);
-        return FilesStatusCode::Ok;
+        return Post(kDoneFilesAppend, 0, errno != 0 ? errno : -1)
+                   ? FilesStatusCode::Ok
+                   : FilesStatusCode::CapacityExceeded;
     }
     size_t wrote = fwrite(line, 1, len, f);
     wrote += fwrite("\n", 1, 1, f);
     fflush(f);
     fsync(fileno(f));
     fclose(f);
-    Post(kDoneFilesAppend, static_cast<int32_t>(wrote),
-         wrote == len + 1 ? 0 : -1);
-    return FilesStatusCode::Ok;
+    return Post(kDoneFilesAppend, static_cast<int32_t>(wrote),
+                wrote == len + 1 ? 0 : -1)
+               ? FilesStatusCode::Ok
+               : FilesStatusCode::CapacityExceeded;
 }
 
 FilesStatusCode FilesRemove(const char *virtual_path) {
@@ -286,9 +301,10 @@ FilesStatusCode FilesRemove(const char *virtual_path) {
     if (rc != 0 && errno == EISDIR) {
         rc = rmdir(real);
     }
-    Post(kDoneFilesRemove, rc == 0 ? 1 : 0,
-         rc == 0 ? 0 : (errno != 0 ? errno : -1));
-    return FilesStatusCode::Ok;
+    return Post(kDoneFilesRemove, rc == 0 ? 1 : 0,
+                rc == 0 ? 0 : (errno != 0 ? errno : -1))
+               ? FilesStatusCode::Ok
+               : FilesStatusCode::CapacityExceeded;
 }
 
 uint32_t FilesListCount() { return s_state.list_count; }

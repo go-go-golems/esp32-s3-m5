@@ -1,0 +1,155 @@
+{
+  "capture": "/tmp/esp60-arduino-trace-four-tags.log",
+  "runs": [
+    {
+      "phase": "init",
+      "ok": true,
+      "elapsed_ms": 122,
+      "reported_transactions": 338,
+      "reported_succeeded": 338,
+      "reported_failed": 0,
+      "reported_buffered": 338,
+      "reported_dropped": 0,
+      "captured_events": 338,
+      "captured_failed": 0,
+      "median_transaction_us": 176.0,
+      "p95_transaction_us": 187,
+      "max_transaction_us": 351,
+      "important_key_counts": {
+        "0x02": 4,
+        "0x42": 7,
+        "0x4A": 1
+      }
+    },
+    {
+      "phase": "detect",
+      "ok": true,
+      "elapsed_ms": 1006,
+      "reported_transactions": 4816,
+      "reported_succeeded": 4816,
+      "reported_failed": 0,
+      "reported_buffered": 4816,
+      "reported_dropped": 0,
+      "captured_events": 4816,
+      "captured_failed": 0,
+      "median_transaction_us": 178.0,
+      "p95_transaction_us": 213,
+      "max_transaction_us": 478,
+      "important_key_counts": {
+        "0x0A": 7,
+        "0x4A": 153,
+        "0x80": 15,
+        "0x9F": 15,
+        "0xC6": 138
+      }
+    },
+    {
+      "phase": "identify",
+      "ok": true,
+      "elapsed_ms": 21,
+      "reported_transactions": 92,
+      "reported_succeeded": 92,
+      "reported_failed": 0,
+      "reported_buffered": 92,
+      "reported_dropped": 0,
+      "captured_events": 92,
+      "captured_failed": 0,
+      "median_transaction_us": 178.5,
+      "p95_transaction_us": 228,
+      "max_transaction_us": 391,
+      "important_key_counts": {
+        "0x0A": 1,
+        "0x4A": 6,
+        "0x80": 4,
+        "0x9F": 4,
+        "0xC7": 1
+      }
+    },
+    {
+      "phase": "identify",
+      "ok": false,
+      "elapsed_ms": 21,
+      "reported_transactions": 87,
+      "reported_succeeded": 87,
+      "reported_failed": 0,
+      "reported_buffered": 87,
+      "reported_dropped": 0,
+      "captured_events": 87,
+      "captured_failed": 0,
+      "median_transaction_us": 178,
+      "p95_transaction_us": 242,
+      "max_transaction_us": 400,
+      "important_key_counts": {
+        "0x0A": 2,
+        "0x4A": 4,
+        "0x80": 2,
+        "0x9F": 1,
+        "0xC7": 1
+      }
+    },
+    {
+      "phase": "identify",
+      "ok": false,
+      "elapsed_ms": 22,
+      "reported_transactions": 87,
+      "reported_succeeded": 87,
+      "reported_failed": 0,
+      "reported_buffered": 87,
+      "reported_dropped": 0,
+      "captured_events": 87,
+      "captured_failed": 0,
+      "median_transaction_us": 179,
+      "p95_transaction_us": 243,
+      "max_transaction_us": 357,
+      "important_key_counts": {
+        "0x0A": 2,
+        "0x4A": 4,
+        "0x80": 2,
+        "0x9F": 1,
+        "0xC7": 1
+      }
+    },
+    {
+      "phase": "detect",
+      "ok": false,
+      "elapsed_ms": 1007,
+      "reported_transactions": 4768,
+      "reported_succeeded": 4768,
+      "reported_failed": 0,
+      "reported_buffered": 4768,
+      "reported_dropped": 0,
+      "captured_events": 4767,
+      "captured_failed": 0,
+      "median_transaction_us": 178,
+      "p95_transaction_us": 213,
+      "max_transaction_us": 414,
+      "important_key_counts": {
+        "0x0A": 1,
+        "0x4A": 144,
+        "0xC6": 144
+      }
+    }
+  ],
+  "identified_tags": [
+    {
+      "uid": "047BD44D9E6180",
+      "type": "NTAG 215",
+      "atqa": "0044",
+      "sak": "00"
+    }
+  ],
+  "failed_identifications": [
+    {
+      "uid": "0491D44C9E6180",
+      "provisional_type": "MIFARE Ultralight",
+      "atqa": "0044",
+      "sak": "00"
+    },
+    {
+      "uid": "04DAF74D9E6180",
+      "provisional_type": "MIFARE Ultralight",
+      "atqa": "0044",
+      "sak": "00"
+    }
+  ]
+}

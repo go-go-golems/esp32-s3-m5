@@ -1,0 +1,3 @@
+smoke begin ok=1 state=ready-reader
+smoke scan ok=1 tags=0 state=ready-reader
+smoke scan ok=1 tags=0 state=ready-reader

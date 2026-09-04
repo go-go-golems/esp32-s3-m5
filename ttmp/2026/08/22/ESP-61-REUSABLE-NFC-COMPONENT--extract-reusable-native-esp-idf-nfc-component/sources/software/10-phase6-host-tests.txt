@@ -1,0 +1,10 @@
+# Phase 6 host tests (mutation permits + write reports)
+
+Compiling host tests...
+Running host tests...
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED
+ALL TESTS PASSED

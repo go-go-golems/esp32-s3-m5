@@ -105,6 +105,14 @@ PresentResult FakeBackend::Present(const RenderFrame &frame,
                 Append("\"");
                 break;
             }
+            case DrawOpKind::Bitmap: {
+                // ESP-54: trace the bitmap op (pixel data not dumped; the
+                // bounds + stride identify it for host-test assertions).
+                const BitmapPayload &bm = op.payload.bitmap;
+                Append(" stride=%d data_len=%u", bm.stride,
+                       static_cast<unsigned>(bm.data_len));
+                break;
+            }
             default:
                 break;
         }

@@ -1,0 +1,217 @@
+# 0117 read-only NFC feature explorer probe
+# captured=2026-08-22T20:47:17.010996+00:00
+# port=/dev/serial/by-id/usb-Espressif_USB_JTAG_serial_debug_unit_44:1B:F6:E2:80:28-if00
+# baud=115200
+# commands=nfc-mode,nfc-capabilities,nfc-scan 1000,nfc-info,nfc-raw-read 0,nfc-ndef-read,nfc-dump
+
+=== BOOT/PROMPT ===
+
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-mode ===
+ I (831) main: console ready; run 'nfc-capabilities' and 'help'
+nfc-mode
+NFC_MODE current=reader ready=1
+nfc-explorer>
+=== CMD: nfc-capabilities ===
+ nfc-capabilities
+NFC_CAPABILITY name=quick-scan command="nfc-scan [timeout_ms]" mutation=none
+NFC_CAPABILITY name=identification command=nfc-info mutation=none
+NFC_CAPABILITY name=complete-dump command=nfc-dump mutation=none
+NFC_CAPABILITY name=direct-read command="nfc-raw-read <address>" mutation=none
+NFC_CAPABILITY name=direct-write-test command="nfc-write-test <address> --confirm RESTORE-AFTER-TEST" mutation=reversible
+NFC_CAPABILITY name=ndef-read command=nfc-ndef-read mutation=none
+NFC_CAPABILITY name=ndef-write command="nfc-ndef-write-demo --confirm REPLACE-NDEF" mutation=replace
+NFC_CAPABILITY name=value-inspect command=nfc-value-inspect mutation=none card=MIFARE-Classic
+NFC_CAPABILITY name=wallet command="nfc-wallet-demo <block> <non-rechargeable|rechargeable> --confirm MUTATE-CLASSIC" mutation=structural card=MIFARE-Classic
+NFC_CAPABILITY name=tag-emulation command="nfc-mode <emulation-ultralight|emulation-ntag213> --confirm REBOOT" mutation=firmware-mode
+nfc-explorer>
+=== CMD: nfc-scan 1000 ===
+nfc-scan 1000
+NFC_SCAN_PICC uid=04DAF74D9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_RESULT op=scan ok=1 detected=1 identified=1 timeout_ms=1000
+nfc-explorer>
+=== CMD: nfc-info ===
+ nfc-info
+NFC_ACTIVATE_DISCOVERY ok=1 source=WUPA
+NFC_PICC uid=04DAF74D9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_DEACTIVATE ok=1
+NFC_RESULT op=info ok=1
+nfc-explorer>
+=== CMD: nfc-raw-read 0 ===
+ nfc-raw-read 0
+NFC_ACTIVATE_DISCOVERY ok=1 source=WUPA
+NFC_PICC uid=04DAF74D9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_RAW_READ len=16 hex=04:DA:F7:A1:4D:9E:61:80:32:48:00:00:E1:10:3E:00
+NFC_DEACTIVATE ok=1
+NFC_RESULT op=raw-read ok=1 address=0
+nfc-explorer>
+=== CMD: nfc-ndef-read ===
+nfc-ndef-read
+NFC_ACTIVATE_DISCOVERY ok=1 source=WUPA
+NFC_PICC uid=04DAF74D9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_NDEF_FORMAT query_ok=1 valid=1
+NFC_NDEF_RECORDS count=0
+NFC_DEACTIVATE ok=1
+NFC_RESULT op=ndef-read ok=1 valid=1
+nfc-explorer>
+=== CMD: nfc-dump ===
+ nfc-dump
+NFC_ACTIVATE_DISCOVERY ok=1 source=WUPA
+NFC_PICC uid=04DAF74D9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_DUMP_BEGIN key_a=FFFFFFFFFFFF
+Page    :00 01 02 03
+--------------------
+[000/00]:04 DA F7 A1
+[001/01]:4D 9E 61 80
+[002/02]:32 48 00 00
+[003/03]:E1 10 3E 00
+[004/04]:03 00 FE 00
+[005/05]:00 00 00 00
+[006/06]:00 00 00 00
+[007/07]:00 00 00 00
+[008/08]:00 00 00 00
+[009/09]:00 00 00 00
+[010/0A]:00 00 00 00
+[011/0B]:00 00 00 00
+[012/0C]:00 00 00 00
+[013/0D]:00 00 00 00
+[014/0E]:00 00 00 00
+[015/0F]:00 00 00 00
+[016/10]:00 00 00 00
+[017/11]:00 00 00 00
+[018/12]:00 00 00 00
+[019/13]:00 00 00 00
+[020/14]:00 00 00 00
+[021/15]:00 00 00 00
+[022/16]:00 00 00 00
+[023/17]:00 00 00 00
+[024/18]:00 00 00 00
+[025/19]:00 00 00 00
+[026/1A]:00 00 00 00
+[027/1B]:00 00 00 00
+[028/1C]:00 00 00 00
+[029/1D]:00 00 00 00
+[030/1E]:00 00 00 00
+[031/1F]:00 00 00 00
+[032/20]:00 00 00 00
+[033/21]:00 00 00 00
+[034/22]:00 00 00 00
+[035/23]:00 00 00 00
+[036/24]:00 00 00 00
+[037/25]:00 00 00 00
+[038/26]:00 00 00 00
+[039/27]:00 00 00 00
+[040/28]:00 00 00 00
+[041/29]:00 00 00 00
+[042/2A]:00 00 00 00
+[043/2B]:00 00 00 00
+[044/2C]:00 00 00 00
+[045/2D]:00 00 00 00
+[046/2E]:00 00 00 00
+[047/2F]:00 00 00 00
+[048/30]:00 00 00 00
+[049/31]:00 00 00 00
+[050/32]:00 00 00 00
+[051/33]:00 00 00 00
+[052/34]:00 00 00 00
+[053/35]:00 00 00 00
+[054/36]:00 00 00 00
+[055/37]:00 00 00 00
+[056/38]:00 00 00 00
+[057/39]:00 00 00 00
+[058/3A]:00 00 00 00
+[059/3B]:00 00 00 00
+[060/3C]:00 00 00 00
+[061/3D]:00 00 00 00
+[062/3E]:00 00 00 00
+[063/3F]:00 00 00 00
+[064/40]:00 00 00 00
+[065/41]:00 00 00 00
+[066/42]:00 00 00 00
+[067/43]:00 00 00 00
+[068/44]:00 00 00 00
+[069/45]:00 00 00 00
+[070/46]:00 00 00 00
+[071/47]:00 00 00 00
+[072/48]:00 00 00 00
+[073/49]:00 00 00 00
+[074/4A]:00 00 00 00
+[075/4B]:00 00 00 00
+[076/4C]:00 00 00 00
+[077/4D]:00 00 00 00
+[078/4E]:00 00 00 00
+[079/4F]:00 00 00 00
+[080/50]:00 00 00 00
+[081/51]:00 00 00 00
+[082/52]:00 00 00 00
+[083/53]:00 00 00 00
+[084/54]:00 00 00 00
+[085/55]:00 00 00 00
+[086/56]:00 00 00 00
+[087/57]:00 00 00 00
+[088/58]:00 00 00 00
+[089/59]:00 00 00 00
+[090/5A]:00 00 00 00
+[091/5B]:00 00 00 00
+[092/5C]:00 00 00 00
+[093/5D]:00 00 00 00
+[094/5E]:00 00 00 00
+[095/5F]:00 00 00 00
+[096/60]:00 00 00 00
+[097/61]:00 00 00 00
+[098/62]:00 00 00 00
+[099/63]:00 00 00 00
+[100/64]:00 00 00 00
+[101/65]:00 00 00 00
+[102/66]:00 00 00 00
+[103/67]:00 00 00 00
+[104/68]:00 00 00 00
+[105/69]:00 00 00 00
+[106/6A]:00 00 00 00
+[107/6B]:00 00 00 00
+[108/6C]:00 00 00 00
+[109/6D]:00 00 00 00
+[110/6E]:00 00 00 00
+[111/6F]:00 00 00 00
+[112/70]:00 00 00 00
+[113/71]:00 00 00 00
+[114/72]:00 00 00 00
+[115/73]:00 00 00 00
+[116/74]:00 00 00 00
+[117/75]:00 00 00 00
+[118/76]:00 00 00 00
+[119/77]:00 00 00 00
+[120/78]:00 00 00 00
+[121/79]:00 00 00 00
+[122/7A]:00 00 00 00
+[123/7B]:00 00 00 00
+[124/7C]:00 00 00 00
+[125/7D]:00 00 00 00
+[126/7E]:00 00 00 00
+[127/7F]:00 00 00 00
+[128/80]:00 00 00 00
+[129/81]:00 00 00 00
+[130/82]:00 00 00 BD
+[131/83]:04 00 00 FF
+[132/84]:00 05 00 00
+[133/85]:00 00 00 00
+[134/86]:00 00 00 00
+NFC_DUMP_END ok=1
+NFC_DEACTIVATE ok=1
+NFC_RESULT op=dump ok=1
+nfc-explorer>

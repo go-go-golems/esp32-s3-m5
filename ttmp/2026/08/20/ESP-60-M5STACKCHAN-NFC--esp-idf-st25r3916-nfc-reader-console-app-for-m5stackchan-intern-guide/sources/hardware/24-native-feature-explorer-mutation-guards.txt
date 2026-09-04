@@ -1,0 +1,66 @@
+# 0117 NFC mutation guard probe
+# captured=2026-08-22T18:19:30.316972+00:00
+# no valid mutation confirmation token is sent
+
+
+Type 'help' to get the list of commands.
+
+Use UP/DOWN arrows to navigate through command history.
+
+Press TAB when typing command name to auto-complete.
+
+
+
+Your terminal application does not support escape sequences.
+
+Line editing and history features are disabled.
+
+On Windows, try using Windows Terminal or Putty instead.
+
+nfc-explorer>
+=== CMD: nfc-value-inspect ===
+nfc-value-inspect
+I (831) main: console ready; run 'nfc-capabilities' and 'help'
+NFC_ACTIVATE_DISCOVERY ok=1 source=REQA
+NFC_PICC uid=0491D44C9E6180 type="NTAG 215" atqa=0044 sak=00 uid_bytes=7 blocks=135 unit=4 user=504 total=540 first_user=4 last_user=129 ndef=1 forum_tag=2 filesystem=0x00000001
+NFC_VALUE_SCAN ok=0 reason=not-classic type="NTAG 215"
+NFC_DEACTIVATE ok=1
+NFC_RESULT op=value-inspect ok=0 found=0
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-write-test 4 ===
+ nfc-write-test 4
+usage: nfc-write-test <address> --confirm RESTORE-AFTER-TEST
+warning: use only a sacrificial tag; restoration can fail if communication is interrupted
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-write-test 4 --confirm WRONG ===
+ nfc-write-test 4 --confirm WRONG
+usage: nfc-write-test <address> --confirm RESTORE-AFTER-TEST
+warning: use only a sacrificial tag; restoration can fail if communication is interrupted
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-ndef-write-demo ===
+nfc-ndef-write-demo
+usage: nfc-ndef-write-demo --confirm REPLACE-NDEF
+warning: replaces the current NDEF message; non-NDEF tags are refused
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-ndef-write-demo --confirm WRONG ===
+nfc-ndef-write-demo --confirm WRONG
+usage: nfc-ndef-write-demo --confirm REPLACE-NDEF
+warning: replaces the current NDEF message; non-NDEF tags are refused
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-wallet-demo 62 rechargeable ===
+nfc-wallet-demo 62 rechargeable
+usage: nfc-wallet-demo <block> <non-rechargeable|rechargeable> --confirm MUTATE-CLASSIC
+warning: changes Classic access bits and data; use only a sacrificial default-key card
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>
+=== CMD: nfc-wallet-demo 62 rechargeable --confirm WRONG ===
+nfc-wallet-demo 62 rechargeable --confirm WRONG
+usage: nfc-wallet-demo <block> <non-rechargeable|rechargeable> --confirm MUTATE-CLASSIC
+warning: changes Classic access bits and data; use only a sacrificial default-key card
+Command returned non-zero error code: 0x1 (ERROR)
+nfc-explorer>

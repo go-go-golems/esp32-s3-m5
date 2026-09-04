@@ -320,6 +320,40 @@ static void TestFakeBackendTrace() {
     CHECK(small.trace_truncated());
 }
 
+// ESP-54: the Bitmap draw op (packed 4-bit grayscale) emits a frame op
+// and produces a fake-backend trace line identifying it. The backend arm
+// itself is implemented on-device; the host asserts the emit/trace path.
+static void TestBitmapOp() {
+    DrawOp ops[4];
+    uint8_t arena_buf[256];
+    FrameArena arena(arena_buf, sizeof(arena_buf));
+    FrameBuilder fb(ops, 4, &arena, kViewport);
+    // 4 px wide, 2 px tall, 2 px/byte => 2 bytes/row => 4 bytes of data.
+    const uint8_t pixels[4] = {0x0F, 0x0F, 0x0F, 0x0F};
+    fb.Begin();
+    CHECK(fb.Bitmap(Rect{0, 0, 4, 2}, pixels, sizeof(pixels), 2).ok());
+    // A fully-clipped bitmap is dropped (the FillRect pattern).
+    CHECK(fb.Bitmap(Rect{-10, -10, 2, 2}, pixels, sizeof(pixels), 1).ok());
+    const Result<RenderFrame> frame = fb.Finish(7);
+    CHECK(frame.ok());
+    CHECK(frame.value.op_count == 1);  // the clipped one was dropped
+    CHECK(frame.value.ops[0].kind == DrawOpKind::Bitmap);
+    CHECK(frame.value.ops[0].payload.bitmap.stride == 2);
+    CHECK(frame.value.ops[0].payload.bitmap.data_len == 4);
+
+    char trace_buf[1024];
+    FakeBackend backend(trace_buf, sizeof(trace_buf), kViewport);
+    CHECK(backend.Init().ok());
+    const PresentResult r =
+        backend.Present(frame.value, PresentIntent::CleanFull);
+    CHECK(r.status == StatusCode::Ok);
+    CHECK(r.ops_drawn == 1);
+    // The trace must identify the bitmap op with its stride + data_len.
+    CHECK(std::strstr(backend.trace(),
+                      "op kind=Bitmap gray=0 bounds=0,0,4,2") != nullptr);
+    CHECK(std::strstr(backend.trace(), " stride=2 data_len=4") != nullptr);
+}
+
 static RefreshPlan PresentOnce(RefreshPlanner &planner, PresentIntent intent,
                                int64_t now_us) {
     const RefreshPlan plan = planner.Plan(intent, now_us);
@@ -1928,6 +1962,7 @@ int main() {
     TestBuilderClipping();
     TestBuilderCapacityAndLifetime();
     TestFakeBackendTrace();
+    TestBitmapOp();
     TestPlannerDamageMerge();
     TestPlannerCapacityFallback();
     TestPlannerFullTriggers();

@@ -166,6 +166,41 @@ Status FrameBuilder::GlyphRun(const Rect &bounds, int32_t baseline_y,
     return Emit(op);
 }
 
+// ESP-54: packed 4-bit grayscale bitmap. The payload is copied into the
+// frame arena exactly like a GlyphRun text payload; the backend reads it
+// back via frame.arena->Data(offset). stride is bytes per row (the backend
+// unpacks 2 px/byte, high nibble first).
+Status FrameBuilder::Bitmap(const Rect &bounds, const uint8_t *data,
+                            uint32_t data_len, int32_t stride) {
+    if (data == nullptr && data_len > 0) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    if (arena_ == nullptr || stride <= 0) {
+        return ErrStatus(StatusCode::InvalidArgument);
+    }
+    const Result<Rect> clipped = Intersect(bounds, CurrentClip());
+    if (!clipped.ok()) {
+        return ErrStatus(clipped.code);
+    }
+    if (IsEmpty(clipped.value)) {
+        dropped_clipped_++;
+        return OkStatus();
+    }
+    const Result<uint32_t> stored =
+        arena_->PushBytes(data, data_len, 1);
+    if (!stored.ok()) {
+        return ErrStatus(stored.code);
+    }
+    DrawOp op{};
+    op.kind = DrawOpKind::Bitmap;
+    op.bounds = clipped.value;
+    op.clip = CurrentClip();
+    op.payload.bitmap.data_offset = stored.value;
+    op.payload.bitmap.data_len = data_len;
+    op.payload.bitmap.stride = stride;
+    return Emit(op);
+}
+
 Result<RenderFrame> FrameBuilder::Finish(FrameId id) {
     if (clip_depth_ != 1) {
         // Unbalanced push/pop means the emitting code lost track of state.

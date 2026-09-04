@@ -1,0 +1,5 @@
+qr reset
+REFUSED: factory reset can persist USB mode and disable UART control. Keep recovery barcode 21424000 available, then run: qr reset CONFIRM-21424000
+Command returned non-zero error code: 0x1 (ERROR)
+cores3-qr>
+cores3-qr>
