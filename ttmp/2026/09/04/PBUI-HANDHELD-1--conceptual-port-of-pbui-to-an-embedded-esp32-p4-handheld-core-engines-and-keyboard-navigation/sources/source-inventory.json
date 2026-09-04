@@ -1,0 +1,610 @@
+{
+  "repositories": {
+    "pbui": {
+      "root": "/home/manuel/workspaces/2026-09-01/add-plot-editor/pbui",
+      "commit": "879b34215076af75d1e6e5c0af3b04332475e998"
+    },
+    "firmware": {
+      "root": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5",
+      "commit": "61c07590a7a151bd9d508ee0aeb2b69a93df516f"
+    }
+  },
+  "files": [
+    {
+      "repo": "pbui",
+      "path": "src/presentation/actions/typeGraph.ts",
+      "sha256": "bf0d67ff5fb80724a8462af5184a619940ef058d3b12c71c3defdba9431d75ee",
+      "lines": 135,
+      "anchors": [
+        {
+          "line": 55,
+          "text": "export function createPresentationTypeGraph("
+        },
+        {
+          "line": 76,
+          "text": "// Cycle detection via iterative DFS coloring, before any BFS caches build."
+        },
+        {
+          "line": 93,
+          "text": "/** BFS ancestor lists with shortest distances, cached per type. */"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/context/selector.ts",
+      "sha256": "4b13659a4b885c13528d5d615e57fc336c88e949e2844b33ee8e289f67ef836f",
+      "lines": 171,
+      "anchors": [
+        {
+          "line": 37,
+          "text": "export function activeScope("
+        },
+        {
+          "line": 63,
+          "text": "export function selectorOf(source: SelectorSource): PresentationSelector {"
+        },
+        {
+          "line": 80,
+          "text": "export function requireScoped(match: SelectorMatch, owner: string): ScopedSelectorMatch {"
+        },
+        {
+          "line": 89,
+          "text": "export function matchSelector<Values extends PresentationValues, ProductFacts>("
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/actions/conditions.ts",
+      "sha256": "a75733cd52f4ab2b35c642adfb72105c840299cf0d84d52f423b6454cde02946",
+      "lines": 126,
+      "anchors": [
+        {
+          "line": 22,
+          "text": "export type Condition ="
+        },
+        {
+          "line": 92,
+          "text": "export function evaluateCondition<Values extends PresentationValues, ProductFacts>("
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/actions/availability.ts",
+      "sha256": "7132c4c0105669365b29634dc2dc052a1412f5edeeb7767d76b148f9c36c0959",
+      "lines": 52,
+      "anchors": [
+        {
+          "line": 23,
+          "text": "export type Availability ="
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/actions/registry.ts",
+      "sha256": "6fe4241bcf8351becb9c06110aa5b73d776838ffa83a039a460fbe39dd85aa65",
+      "lines": 262,
+      "anchors": [
+        {
+          "line": 86,
+          "text": "export function createActionRegistry<Values extends PresentationValues, ProductFacts, Verb>("
+        },
+        {
+          "line": 164,
+          "text": "// Guaranteed collisions: two unconditional static rules for one action and"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/actions/resolve.ts",
+      "sha256": "33c86a3b1028529e0a20b7069ef13831c2dfb0a1c9693008bff61c20a239984c",
+      "lines": 394,
+      "anchors": [
+        {
+          "line": 66,
+          "text": "export function resolveActions<Values extends PresentationValues, ProductFacts, Verb>("
+        },
+        {
+          "line": 226,
+          "text": "/* [8..12] partition by action id, run the ladder ------------------------- */"
+        },
+        {
+          "line": 296,
+          "text": "/* [13..16] bind winners, hide hidden, sort, assemble --------------------- */"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/actions/perform.ts",
+      "sha256": "bdd24607caca8c17cf2f2e35570a43c21724d5c5c3202f4b247bebffafe9ad47",
+      "lines": 47,
+      "anchors": [
+        {
+          "line": 25,
+          "text": "export function evaluateFresh<Values extends PresentationValues, Verb>("
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/acceptance/resolve.ts",
+      "sha256": "686f58b94ff140e96aac3965f1e62ebcddb15ee8325a6ce23290e269d577c0d1",
+      "lines": 88,
+      "anchors": [
+        {
+          "line": 16,
+          "text": "function finish<Values extends PresentationValues>("
+        },
+        {
+          "line": 46,
+          "text": "export function resolveAcceptance<Values extends PresentationValues, ProductFacts>("
+        },
+        {
+          "line": 61,
+          "text": "// Subtyping is substitutability, never conversion: preserve the reference."
+        },
+        {
+          "line": 69,
+          "text": "// Only acceptance-exposed relations whose declared codomain reaches a wanted"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/interaction/accept.ts",
+      "sha256": "52655a9c48efd87a7130e33c9b09f9f9719f585ffdad53934358c99db6c4fdc9",
+      "lines": 118,
+      "anchors": [
+        {
+          "line": 25,
+          "text": "export type AcceptState<Values extends PresentationValues> ="
+        },
+        {
+          "line": 35,
+          "text": "export type AcceptEvent<Values extends PresentationValues> ="
+        },
+        {
+          "line": 64,
+          "text": "export function acceptStep<Values extends PresentationValues>("
+        },
+        {
+          "line": 91,
+          "text": "case \"choose\":"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/interaction/activation.ts",
+      "sha256": "07450c8dc023eb9e05f2cae9185a722e9c70a66634855f0a6172e21bb6081688",
+      "lines": 54,
+      "anchors": [
+        {
+          "line": 41,
+          "text": "export function activationOutcome<Values extends PresentationValues, Verb>("
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/model/compile.ts",
+      "sha256": "25149190b7faeef9d5fe3af8cc456df8af106a835df721465564d8ca62d65953",
+      "lines": 401,
+      "anchors": [
+        {
+          "line": 59,
+          "text": "function mergeFragments<Values extends PresentationValues, Environment, ProductFacts, Verb>("
+        },
+        {
+          "line": 173,
+          "text": "export function compilePresentation<"
+        },
+        {
+          "line": 301,
+          "text": "function snapshot(input: PresentationContextInput<ProductFacts>): SelectionSnapshot<ProductFacts> {"
+        },
+        {
+          "line": 386,
+          "text": "function validateActiveScopes("
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/model/types.ts",
+      "sha256": "6a98c450588e5869cb3ac5ab32fb3009ca827c8a4dd5f306055b13a900805541",
+      "lines": 186,
+      "anchors": [
+        {
+          "line": 48,
+          "text": "export interface PresentationFragment<"
+        },
+        {
+          "line": 66,
+          "text": "export interface PresentationDeclaration<"
+        },
+        {
+          "line": 98,
+          "text": "export interface PresentationContextInput<ProductFacts> {"
+        },
+        {
+          "line": 108,
+          "text": "export interface VocabularyFragmentEntry {"
+        },
+        {
+          "line": 116,
+          "text": "export interface VocabularyHelpRuleEntry {"
+        },
+        {
+          "line": 129,
+          "text": "export interface PresentationVocabulary {"
+        },
+        {
+          "line": 145,
+          "text": "export interface LinkDependencyOptions<ProductFacts> {"
+        },
+        {
+          "line": 152,
+          "text": "export interface CompiledPresentation<"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "src/presentation/relations/system.ts",
+      "sha256": "ae29101379a31c4f3b1199abfe2847b4d0663f0fb585229cd48456ff023f47f1",
+      "lines": 527,
+      "anchors": [
+        {
+          "line": 104,
+          "text": "export function isExposedTo(exposure: RelationExposure, interpreter: RelationInterpreter): boolean {"
+        },
+        {
+          "line": 145,
+          "text": "export function createRelationSystem<"
+        },
+        {
+          "line": 364,
+          "text": "function discoverable("
+        },
+        {
+          "line": 395,
+          "text": "function execute("
+        },
+        {
+          "line": 506,
+          "text": "matches(reference, snapshot, discovery) {"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "packages/pbui-ecommerce/src/presentation/actions.ts",
+      "sha256": "b01254b4048cd9184f12f409abbc4fec14b806d00a6a90d5e06b739758338c3b",
+      "lines": 55,
+      "anchors": [
+        {
+          "line": 16,
+          "text": "export const SHOP_TYPES: readonly PresentationTypeDefinition[] = ["
+        },
+        {
+          "line": 43,
+          "text": "export function shopRevision(facts: Readonly<ShopFacts>): string {"
+        },
+        {
+          "line": 48,
+          "text": "export function shopContextFor(_query: ActionQuery<Values>, environment: Environment): PresentationContextInput<ShopFacts> {"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "packages/pbui-ecommerce/src/presentation/runtime.tsx",
+      "sha256": "b4fe7fcd9331377b5e78c32ee83fddcca6830954faf7f995802d7d08b60c4538",
+      "lines": 59,
+      "anchors": [
+        {
+          "line": 22,
+          "text": "export function createShopPresentation(host: ShopHost, extra: readonly ActionContribution<Values, ShopFacts, ShopVerb>[] = []): ShopPresentation {"
+        },
+        {
+          "line": 48,
+          "text": "export function createShopPbui(host: ShopHost, extra: readonly ActionContribution<Values, ShopFacts, ShopVerb>[] = []): ShopPbui {"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "packages/workbench-core/src/session.ts",
+      "sha256": "b2dfb9991c39817378e7e3c65964db1a39f0898d6a0f4e7cf671702c2d829392",
+      "lines": 27,
+      "anchors": [
+        {
+          "line": 9,
+          "text": "export interface WorkbenchSession {"
+        },
+        {
+          "line": 21,
+          "text": "export function repairSession(session: WorkbenchSession, doc: WorkbenchDocument, index: WorkbenchIndex): WorkbenchSession {"
+        }
+      ]
+    },
+    {
+      "repo": "pbui",
+      "path": "packages/workbench-core/src/queries.ts",
+      "sha256": "ef5786d2115f1474493df31c0e6b1e4c21bf79b3e69b119f731c47e824e810d2",
+      "lines": 80,
+      "anchors": [
+        {
+          "line": 69,
+          "text": "export function canClose(index: WorkbenchIndex, placementId: string): boolean {"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "components/picocalc_lcd/picocalc_lcd.c",
+      "sha256": "47186fafddb07a96613a1c44eed65f2fa0a00765ef4f183fc6669302a1fc02e2",
+      "lines": 330,
+      "anchors": [
+        {
+          "line": 31,
+          "text": "#define LCD_DEFAULT_SPI_HZ        (40 * 1000 * 1000)"
+        },
+        {
+          "line": 52,
+          "text": "static esp_err_t lcd_tx(const void *data, size_t len)"
+        },
+        {
+          "line": 75,
+          "text": "static esp_err_t lcd_ensure_dma_buffer(size_t min_len)"
+        },
+        {
+          "line": 270,
+          "text": "esp_err_t picocalc_lcd_blit_rect(uint16_t x, uint16_t y, uint16_t w, uint16_t h,"
+        },
+        {
+          "line": 308,
+          "text": "esp_err_t picocalc_lcd_blit_row(uint16_t y, uint16_t h, const uint16_t *pixels, size_t pixel_count)"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "components/picocalc_keyboard/picocalc_keyboard.c",
+      "sha256": "b1a4bdac6d5ca2990a486020ebe277a06dd8c2d1595e52524fbc87b9ffa3daae",
+      "lines": 374,
+      "anchors": [
+        {
+          "line": 144,
+          "text": "esp_err_t picocalc_keyboard_recover(void)"
+        },
+        {
+          "line": 188,
+          "text": "esp_err_t picocalc_keyboard_read_register(uint8_t reg, uint8_t *dst, size_t len)"
+        },
+        {
+          "line": 247,
+          "text": "esp_err_t picocalc_keyboard_poll_event(picocalc_key_event_t *event)"
+        },
+        {
+          "line": 304,
+          "text": "const char *picocalc_keyboard_key_name(uint8_t key)"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "components/picocalc_keyboard/include/picocalc_keyboard.h",
+      "sha256": "2e5b84feeb81a4ad2b5fce66e27d3cae1396866fb168d36d19817ba143582240",
+      "lines": 58,
+      "anchors": [
+        {
+          "line": 16,
+          "text": "#define PICOCALC_KBD_I2C_SDA_GPIO      50"
+        },
+        {
+          "line": 17,
+          "text": "#define PICOCALC_KBD_I2C_SCL_GPIO      49"
+        },
+        {
+          "line": 18,
+          "text": "#define PICOCALC_KBD_I2C_SPEED_HZ      10000"
+        },
+        {
+          "line": 19,
+          "text": "#define PICOCALC_KBD_I2C_ADDR          0x1F"
+        },
+        {
+          "line": 21,
+          "text": "#define PICOCALC_KBD_REG_STATUS        0x04"
+        },
+        {
+          "line": 22,
+          "text": "#define PICOCALC_KBD_REG_FIFO          0x09"
+        },
+        {
+          "line": 23,
+          "text": "#define PICOCALC_KBD_COUNT_MASK        0x1F"
+        },
+        {
+          "line": 24,
+          "text": "#define PICOCALC_KBD_CAPS_LOCK_MASK    0x20"
+        },
+        {
+          "line": 25,
+          "text": "#define PICOCALC_KBD_NUM_LOCK_MASK     0x40"
+        },
+        {
+          "line": 27,
+          "text": "#define PICOCALC_KBD_STATE_PRESSED     1"
+        },
+        {
+          "line": 28,
+          "text": "#define PICOCALC_KBD_STATE_REPEATED    2"
+        },
+        {
+          "line": 29,
+          "text": "#define PICOCALC_KBD_STATE_RELEASED    3"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "components/visual_repl/visual_repl.cpp",
+      "sha256": "d70ac3f3837fbde4852b5cbaf8c0525e9c4d8b75da78a04798bf925103c04852",
+      "lines": 395,
+      "anchors": [
+        {
+          "line": 29,
+          "text": "static uint16_t s_row_pixels[PICOCALC_LCD_WIDTH * VISUAL_REPL_CELL_H];"
+        },
+        {
+          "line": 75,
+          "text": "const uint8_t *glyph5x7(char c)"
+        },
+        {
+          "line": 135,
+          "text": "if (uc >= 'a' && uc <= 'z') uc = static_cast<unsigned char>(std::toupper(uc));"
+        },
+        {
+          "line": 151,
+          "text": "void draw_cell(uint16_t *row_pixels, int col, char ch, Palette p, bool cursor)"
+        },
+        {
+          "line": 154,
+          "text": "const uint8_t *glyph = glyph5x7(ch);"
+        },
+        {
+          "line": 182,
+          "text": "esp_err_t render_text_row(int screen_row, visual_repl_style_t style, const char *text, size_t cursor_col, bool show_cursor)"
+        },
+        {
+          "line": 325,
+          "text": "esp_err_t visual_repl_dump_text(char *dst, size_t dst_len)"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "0102-esp32-p4-visual-quickjs-repl/README.md",
+      "sha256": "798ece5193dffd4451c7a45d2c90ef77198c8ac1f95fe01d4847ebcf1611b2a3",
+      "lines": 25,
+      "anchors": [
+        {
+          "line": 11,
+          "text": "source /home/manuel/esp/esp-idf-5.4.2/export.sh"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "0102-esp32-p4-visual-quickjs-repl/sdkconfig.defaults",
+      "sha256": "1f8403757e0d604fd38fcd0711e022ad6769fa60969f5f3795b74fc6994da31a",
+      "lines": 24,
+      "anchors": [
+        {
+          "line": 2,
+          "text": "CONFIG_IDF_TARGET=\"esp32p4\""
+        },
+        {
+          "line": 5,
+          "text": "# CONFIG_ESP_CONSOLE_USB_SERIAL_JTAG is not set"
+        },
+        {
+          "line": 6,
+          "text": "CONFIG_ESP_CONSOLE_UART_DEFAULT=y"
+        },
+        {
+          "line": 7,
+          "text": "CONFIG_ESP_CONSOLE_SECONDARY_NONE=y"
+        },
+        {
+          "line": 10,
+          "text": "CONFIG_ESPTOOLPY_FLASHMODE_DIO=y"
+        },
+        {
+          "line": 11,
+          "text": "CONFIG_ESPTOOLPY_FLASHFREQ_80M=y"
+        },
+        {
+          "line": 12,
+          "text": "CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y"
+        },
+        {
+          "line": 15,
+          "text": "CONFIG_IDF_EXPERIMENTAL_FEATURES=y"
+        },
+        {
+          "line": 16,
+          "text": "CONFIG_SPIRAM=y"
+        },
+        {
+          "line": 17,
+          "text": "CONFIG_SPIRAM_MODE_HEX=y"
+        },
+        {
+          "line": 18,
+          "text": "CONFIG_SPIRAM_SPEED_200M=y"
+        },
+        {
+          "line": 19,
+          "text": "CONFIG_SPIRAM_USE_MALLOC=y"
+        },
+        {
+          "line": 22,
+          "text": "CONFIG_PARTITION_TABLE_CUSTOM=y"
+        },
+        {
+          "line": 23,
+          "text": "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions.csv\""
+        },
+        {
+          "line": 24,
+          "text": "CONFIG_PARTITION_TABLE_FILENAME=\"partitions.csv\""
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "0102-esp32-p4-visual-quickjs-repl/CMakeLists.txt",
+      "sha256": "af86cd875c41b5313331ada6ac1dac0bb50d87d3343205bdfb994d7604b50ef0",
+      "lines": 16,
+      "anchors": [
+        {
+          "line": 5,
+          "text": "set(EXTRA_COMPONENT_DIRS"
+        }
+      ]
+    },
+    {
+      "repo": "firmware",
+      "path": "0102-esp32-p4-visual-quickjs-repl/main/app_main.cpp",
+      "sha256": "125e436c6e75fe1efc250506b659eb49abc6313da57d972475b1544de6a870b3",
+      "lines": 1603,
+      "anchors": [
+        {
+          "line": 652,
+          "text": "bool key_to_picojs_token(uint8_t key, char *dst, size_t dst_len)"
+        },
+        {
+          "line": 729,
+          "text": "void keyboard_task(void *)"
+        },
+        {
+          "line": 760,
+          "text": "if (ev.state == PICOCALC_KBD_STATE_PRESSED || ev.state == PICOCALC_KBD_STATE_REPEATED) {"
+        },
+        {
+          "line": 1582,
+          "text": "BaseType_t task_ok = xTaskCreate(keyboard_task, \"kbd0102\", 12288, nullptr, 5, &g_keyboard_task);"
+        }
+      ]
+    }
+  ]
+}

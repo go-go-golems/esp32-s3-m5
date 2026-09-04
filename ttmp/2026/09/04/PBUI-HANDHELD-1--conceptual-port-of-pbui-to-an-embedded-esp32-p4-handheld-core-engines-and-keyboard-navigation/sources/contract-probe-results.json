@@ -1,0 +1,75 @@
+{
+  "kind": "actual-source-contract-probes",
+  "assertions": "passed",
+  "hidden_before_selection": 0,
+  "deleting_hidden_before_selection_leaks": "generic",
+  "redundant_edge": {
+    "before": "at-file",
+    "after": [
+      {
+        "action": "object.open",
+        "candidates": [
+          "at-file",
+          "at-object"
+        ],
+        "because": "incomparable-types"
+      }
+    ]
+  },
+  "equal_result_relations": {
+    "kind": "ambiguous",
+    "options": [
+      {
+        "relation": "r1",
+        "result": {
+          "type": "segment",
+          "value": "s1"
+        }
+      },
+      {
+        "relation": "r2",
+        "result": {
+          "type": "segment",
+          "value": "s1"
+        }
+      }
+    ]
+  },
+  "direct_filter_rejection": {
+    "result": "none",
+    "relation_calls": 0
+  },
+  "foreign_choose_is_trusted": [
+    {
+      "kind": "settle",
+      "requestId": 10,
+      "reference": {
+        "type": "file",
+        "value": "wrong"
+      }
+    }
+  ],
+  "stale_offer_without_request_id": [
+    {
+      "kind": "settle",
+      "requestId": 11,
+      "reference": {
+        "type": "segment",
+        "value": "s1"
+      }
+    }
+  ],
+  "prototype": {
+    "empty_screen_offers": [
+      "open",
+      "switch",
+      "close",
+      "newtile",
+      "yank",
+      "help"
+    ],
+    "timeline_entries": 29,
+    "max_cursor": 28,
+    "final_edits": 5
+  }
+}

@@ -1,0 +1,1 @@
+PASS: 64 condition associativity cases; 5000 selection worlds x 8 permutations; summary associativity/commutativity/idempotence; overflow counterexample; viewport picks; priority extremes

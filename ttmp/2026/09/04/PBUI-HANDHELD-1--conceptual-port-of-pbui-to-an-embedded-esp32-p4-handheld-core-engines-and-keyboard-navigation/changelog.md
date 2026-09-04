@@ -47,3 +47,7 @@ Added native C++ PBUI subset design: semantic core, keyboard reducer, retained r
 
 Migrated complete ticket from pbui into esp32-s3-m5; verified original file hashes and repaired structured cross-repository references. Fresh native redesign review begins.
 
+
+## 2026-09-04
+
+Fresh review: 307 existing tests passed; actual-source counterexamples and sanitized C++ algebra experiment recorded. Corrected 40 MHz LCD/staging-buffer assumptions and identified catalog, identity, accept-protocol, and prototype viewport gaps.
