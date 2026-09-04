@@ -1,0 +1,17 @@
+{
+  "source": "/home/manuel/workspaces/2026-09-01/add-plot-editor/pbui/ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation",
+  "destination": "/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5/ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation",
+  "sha256_before_relocation": {
+    "README.md": "35e40b460f78a02e6482009f984942d377506b95ffabc457601144439f257735",
+    "changelog.md": "b43717a08ff02d13d8144e1af74cef9573d1353e2ace9b53d82e6f6ddd6e1e3e",
+    "index.md": "81969d8a88209c6ff5e1f0f5d3c7d7a2a026f612885e8d36797ec9a03812c461",
+    "tasks.md": "ac8867e7b24fece7d8f5166cc4a53023a4b92ea5af4882d2932515c84f4cae7b",
+    "design-doc/02-native-c-pbui-subset-for-the-esp32-p4-picocalc.md": "16d7840cb072bc85699adb513b4c893268b8459a4ec549386aeef91115d00717",
+    "design-doc/01-pbui-handheld-port-analysis-design-and-implementation-guide.md": "d4ae727ac9da52d427f3aa5e9113813583a3ac4e7a12bfee4f85bc903da7af8b",
+    "reference/02-handoff-to-the-c-engine-port.md": "f5ce7c64f3f14f57a08a0729fb1c964f7a0ee046371a424a7af3f279285e7a98",
+    "reference/01-investigation-diary.md": "577fb51d52f6fa5886377ff5a5de8742234d2a314e59018d8b6b4a0610c490b5",
+    "sources/pbui-handheld-project-report.md": "df9db952966f8cda5b8a6ef42e1ee25e786c7d9756626987eff7284a3cdbb3b6",
+    "sources/pbui-handheld.jsx": "a3ddcbed06d4a2c3620aaf5bdfdcab25c8e510317011147c1d8e51724d9ddc70",
+    "sources/pbui-handheld-manual.md": "aa08f62a24cf983e252c641e430e1008a9cab8cab619a9a254f0b854b82dfea1"
+  }
+}

@@ -225,6 +225,16 @@ topics:
       description: Electrophoretic display waveform design, timing, and transition behavior
     - slug: hardware-qualification
       description: Reproducible hardware acceptance, safety gating, and physical validation
+    - slug: pbui
+      description: 'Migrated PBUI handheld topic: pbui'
+    - slug: embedded
+      description: 'Migrated PBUI handheld topic: embedded'
+    - slug: design
+      description: 'Migrated PBUI handheld topic: design'
+    - slug: onboarding
+      description: 'Migrated PBUI handheld topic: onboarding'
+    - slug: research
+      description: 'Migrated PBUI handheld topic: research'
 docTypes:
     - slug: index
       description: Ticket index document
