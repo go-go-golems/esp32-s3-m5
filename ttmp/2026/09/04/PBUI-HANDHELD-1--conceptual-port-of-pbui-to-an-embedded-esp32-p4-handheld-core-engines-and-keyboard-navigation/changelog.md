@@ -51,3 +51,7 @@ Migrated complete ticket from pbui into esp32-s3-m5; verified original file hash
 ## 2026-09-04
 
 Fresh review: 307 existing tests passed; actual-source counterexamples and sanitized C++ algebra experiment recorded. Corrected 40 MHz LCD/staging-buffer assumptions and identified catalog, identity, accept-protocol, and prototype viewport gaps.
+
+## 2026-09-04
+
+Guide 03 replaces earlier plans with a roughly 15000-word first-principles native implementation guide: explicit command schema, occurrence identity, correlated acquisition, complete catalog discovery, state transitions, measured-driver-aware rendering, and Phase A-H backlog. Existing source baseline and experiments passed; firmware is not implemented.

@@ -33,6 +33,8 @@ WhenToUse: Read before creating the firmware project, translating PBUI engine te
 
 # Native C++ PBUI subset for the ESP32-P4 PicoCalc
 
+> Historical first native proposal. Superseded by the independent [first-principles review, guide 03](03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md). In particular, do not implement this proposal's inferred command signatures, reference-only caret, result-deduplicating acceptance, two-DMA-row buffering, or inherited 80 MHz timing assumptions without the corrections in guide 03. Original PBUI source paths refer to the pbui repository; the ticket now belongs to esp32-s3-m5.
+
 > This document complements `01-pbui-handheld-port-analysis-design-and-implementation-guide.md`. That guide recommends running the existing TypeScript kernel under QuickJS. This document deliberately explores and specifies the other route requested by the handoff: a native C++20 subset, preserving PBUI behavior while omitting React, DOM, pointer interaction, and initially the workbench tree and link kernel.
 
 ## 1. Executive summary

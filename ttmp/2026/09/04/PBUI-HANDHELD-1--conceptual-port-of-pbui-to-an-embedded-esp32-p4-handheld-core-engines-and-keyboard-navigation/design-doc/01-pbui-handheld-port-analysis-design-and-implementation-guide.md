@@ -125,6 +125,8 @@ WhenToUse: Use when onboarding onto the handheld port, when deciding what of pbu
 
 # pbui handheld port: analysis, design and implementation guide
 
+> Historical analysis, retained after migration from pbui to esp32-s3-m5. Its implementation recommendations are superseded by [guide 03](03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md), including corrections to LCD clock/buffer assumptions and shell semantics. Relative PBUI source paths in this historical text refer to the original pbui repository, not the firmware root.
+
 > Ticket `PBUI-HANDHELD-1`. Written 2026-09-04 against pbui `0.12.0` on branch `task/consolidate-pbui-kernel`, the PBUI/HB prototype v0.3 (`sources/pbui-handheld.jsx`), and the ESP32-P4 PicoCalc firmware tree at `/home/manuel/workspaces/2025-12-21/echo-base-documentation/esp32-s3-m5` (projects 0099, 0101, 0102 and the shared `components/`).
 
 ## 0. How to read this guide

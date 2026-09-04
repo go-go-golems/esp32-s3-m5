@@ -12,13 +12,18 @@ Topics:
 DocType: index
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md
+      Note: Current implementation baseline
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/reference/03-native-redesign-review-diary.md
+      Note: Fresh review and delivery diary
 ExternalSources: []
 Summary: Firmware-owned PBUI handheld ticket, migrated from pbui. Native C++ redesign and evidence review supersede the initial QuickJS implementation plan; implementation has not started.
 LastUpdated: 2026-09-04T12:30:44.255921283-04:00
 WhatFor: Landing page for PBUI-HANDHELD-1 - links the imported PBUI/HB prototype sources, the intern design guide and the diary.
 WhenToUse: Start here when picking up the handheld port or when looking for the handheld prototype sources.
 ---
+
 
 # Conceptual port of pbui to an embedded ESP32-P4 handheld: core engines and keyboard navigation
 
@@ -42,7 +47,12 @@ Deliverables:
 
 This complete ticket was moved from `pbui/ttmp` to the firmware repository `esp32-s3-m5/ttmp` on 2026-09-04. Historical prose paths in the earlier documents refer to their original repository unless stated otherwise; structured file relations have been repaired. The migration manifest is in `sources/ticket-migration-manifest.json`.
 
-The initial QuickJS guide (01) and first native proposal (02) are historical designs under review, not parallel implementation backlogs. The new review guide (03) will establish the implementation baseline. No firmware implementation has started.
+The initial QuickJS guide (01) and first native proposal (02) are historical designs, not parallel implementation backlogs. The new first-principles review guide (03) is the current implementation baseline. No firmware implementation has started.
+
+- **[Read first: PBUI on PicoCalc from first principles](design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md)** — roughly 15,000 words covering the independent review, order/algebra/query/state-machine foundations, explicit native contracts, corrected driver assumptions, eight implementation phases, and verification.
+- **Evidence:** `sources/pbui-conformance-baseline.json` (307 tests passed), `sources/contract-probe-results.json`, `sources/selection-algebra-results.txt`, and `sources/source-inventory.json`.
+- **Current design:** fixed-rule native core and direct relations; explicit command schema and receiver policies; distinct reference/occurrence/view identities; shared interaction frame; correlated acceptance and fresh actions; 40 MHz synchronous row rendering; flat deck; bounded resource policies.
+- **Migration commits:** firmware `61c0759`, pbui removal `dde7d66`. **Research commit:** firmware `01e1ffa`.
 
 - [First native proposal](design-doc/02-native-c-pbui-subset-for-the-esp32-p4-picocalc.md)
 - [Fresh review diary](reference/03-native-redesign-review-diary.md)

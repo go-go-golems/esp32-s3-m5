@@ -2,17 +2,47 @@
 Title: Native redesign review diary
 Ticket: PBUI-HANDHELD-1
 Status: active
-Topics: [pbui, architecture, design, research]
+Topics:
+    - pbui
+    - architecture
+    - design
+    - research
 DocType: reference
 Intent: long-term
 Owners: []
-RelatedFiles: []
+RelatedFiles:
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/archive/01-tasks-before-native-review.md
+      Note: Retained prior task list
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/design-doc/01-pbui-handheld-port-analysis-design-and-implementation-guide.md
+      Note: Historical guide marked superseded
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/design-doc/02-native-c-pbui-subset-for-the-esp32-p4-picocalc.md
+      Note: Historical native proposal marked superseded
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md
+      Note: Replacement guide derived during review
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/index.md
+      Note: Current guide and migration location
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/scripts/01-probe-pbui-contracts.mts
+      Note: Executed semantic probes
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/scripts/02-selection-algebra.cpp
+      Note: Executed C++ algebra checks
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/scripts/03-source-inventory.py
+      Note: Reproducible source anchors and hashes
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/pbui-conformance-baseline.json
+      Note: 307-test baseline
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/source-inventory.json
+      Note: Source hashes and symbol anchors
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/sources/ticket-migration-manifest.json
+      Note: Cross-repository migration integrity
+    - Path: repo://ttmp/2026/09/04/PBUI-HANDHELD-1--conceptual-port-of-pbui-to-an-embedded-esp32-p4-handheld-core-engines-and-keyboard-navigation/tasks.md
+      Note: Replaced stale parallel backlogs with active Phase A-H native plan
 ExternalSources: []
 Summary: Fresh evidence-first review, cross-repository ticket migration, native redesign, and reMarkable delivery.
 LastUpdated: 2026-09-04T15:00:00-04:00
 WhatFor: Review and resume the native redesign with exact evidence and commit boundaries.
 WhenToUse: Read before continuing this review or implementing its replacement design.
 ---
+
+
 
 # Diary
 
@@ -176,3 +206,84 @@ The most consequential shell gap is missing command syntax metadata. An action r
 ### Technical details
 
 Baseline command: `pnpm exec vitest run src/presentation/actions/typeGraph.test.ts src/presentation/context/selector.test.ts src/presentation/actions/conditions.test.ts src/presentation/actions/resolve.test.ts src/presentation/actions/resolve.freeze.test.ts src/presentation/actions/perform.test.ts src/presentation/acceptance/resolve.test.ts src/presentation/interaction/accept.test.ts src/presentation/interaction/activation.test.ts src/presentation/relations/system.test.ts src/presentation/model/model.test.ts --reporter=json --outputFile=<ticket>/sources/pbui-conformance-baseline.json`.
+
+**Commit (research code and evidence):** `01e1ffa4a0ea65b039c1367ebfdca99722efc879` — "docs(pbui): record fresh source review and executable semantic probes".
+
+## Step 3: Derive and write the replacement implementation baseline
+
+The replacement guide develops the system from its semantic entities instead of starting with a list of C++ classes. It explains the nominal type partial order and observable graph distance, the ordered condition algebra, the tie-preserving winner fold, the relation-aware catalog's completeness condition, identity lifetimes, hierarchical state transitions, and validate/commit execution. Every abstraction is tied to a concrete failure or source contract.
+
+I retained native C++, a flat deck, and row rendering, but changed the composition substantially. The new baseline uses explicit command schemas and receiver policies, stable view/occurrence keys, one interaction frame for both rendering and key decoding, fresh acceptance as well as action checks, and the real 40 MHz synchronous LCD driver. The roughly 15,000-word guide is for an intern and includes worked examples, diagrams, API sketches, failure tables, a compatibility matrix, and phase exit evidence.
+
+### Prompt Context
+
+**User prompt (verbatim):** (see Step 1)
+
+**Assistant interpretation:** Replace the earlier design where evidence warrants it and explain the theoretical basis and practical implementation in detail.
+
+**Inferred user intent:** Give the next implementer a coherent, reviewable specification rather than a loose set of API sketches or untested performance assumptions.
+
+### What I did
+
+- Wrote `design-doc/03-pbui-on-picocalc-from-first-principles-semantic-kernel-keyboard-protocol-and-lcd-architecture.md` with nineteen numbered chapters plus reading instructions.
+- Explained why subtype reachability is a partial order but shortest path is additional observable policy; derived first-failure and winner-merge laws and the catalog source-set inclusion argument.
+- Introduced CommandSpec, ContextAnchor, generational ObjectKey, ViewId, OccurrenceKey, RequestId/ChoiceId, and FrameId with explicit lifetimes and use cases.
+- Added a concrete contract for combining a freshly bound operation seed with acquired command arguments, so session-receiver commands such as newtile do not hide argument state in globals.
+- Specified Pending/Choosing state structure, cancellation/return points, stale route checks, visible-only shortcuts, meaningful empty-buffer Tab, stable printed defaults, help paging, lowercase glyph requirements, and text scrolling without an invisible actionable caret.
+- Corrected row-buffer placement, driver staging cost, 40 MHz payload lower bounds, memory allocator assumptions, I2C recovery ownership, and input queue overflow behavior.
+- Archived the previous task list and replaced it with one Phase A–H native backlog. Updated the index and added supersession banners to both earlier guides without rewriting their historical bodies.
+- Related the core source, probes, driver, guide, diary, and evidence through docmgr.
+
+### Why
+
+- A one-declaration architecture needs explicit syntax metadata; it does not mean every command signature can be inferred from an action selector.
+- The safest reduction of scope is an explicitly rejected feature profile (fixed rules and direct relations first), not partial compatibility with silently truncated families or relation routes.
+- The pixel pipeline must preserve semantics until the interaction map has been constructed, and hardware write success must precede publication of positional key mappings.
+
+### What worked
+
+- The algebra experiment supplied a concrete implementation strategy for order-independent selection and an independent oracle for future C++ tests.
+- Doctor passed cleanly after archive/frontmatter corrections. A standalone Pandoc/XeLaTeX preflight produced a 36-page PDF with no stderr warnings; extracted text confirmed typeset formulas, readable tables, and preserved code samples. Thirteen formulas were verified as Math nodes in the Pandoc AST. The preflight PDF lives only in `/tmp`, not Git.
+- Actual-source probes separated existing behavior from native safety extensions; the guide does not claim the TypeScript accept reducer already validates untrusted events.
+- ASCII diagrams and LaTeX equations make the guide readable in both Markdown and a PDF without requiring a Mermaid rendering service.
+
+### What didn't work
+
+- During consistency review, the initial draft left operation seed versus command arguments implicit; I added the explicit CommandInvocation/gateway contract before validation.
+- `docmgr doctor --ticket PBUI-HANDHELD-1 --stale-after 30` rejected `archive/tasks-before-native-review.md` with `frontmatter delimiters '---' not found`. Root tasks.md is special, but an archived Markdown copy is a regular document. Added archived reference frontmatter while preserving its task body, then reran doctor.
+- Cross-checking the new guide's citation table against `source-inventory.json` caught several approximate ranges extending beyond current file lengths. Corrected graph/selector/condition/acceptance/ecommerce and driver/raster ranges to actual current anchors before delivery.
+- The next doctor run warned `missing_numeric_prefix — file without numeric prefix` for the archived task copy. Renamed it to `archive/01-tasks-before-native-review.md` and repaired the current references.
+- PDF preflight exposed a real math-rendering defect: `pandoc <guide> -t json` reported `Math: 0` for the initial `\\[ ... \\]` delimiters. Converted thirteen display formulas to Pandoc-compatible `$$` blocks and asserted that the AST contains exactly thirteen Math nodes. The upload dry-run succeeded, but it does not itself render or validate formulas.
+
+### What I learned
+
+- A memory-to-segment relation cannot implement pinning if pinning is what creates the segment. The guide uses distinct memory/segment pin rules and a pure existing-segment relation for inspection instead.
+- Safety and liveness must be separated: the existing randomized accept test drains with abort, so it cannot prove that an idle user will eventually complete a pending request.
+- A single UI owner gives turn-local immutable borrows and an atomic state install boundary without requiring a full persistent event-sourced system.
+
+### What was tricky to build
+
+The earlier advice to translate tests wholesale conflicted with deliberately excluding families and compositions. I resolved this with a compatibility matrix: shared valid-profile behavior gets differential tests; unsupported features are explicit compiler failures; stronger native event/error policies get separate tests. No skipped or unsupported case counts as a native pass.
+
+Another subtle issue was frame identity at physical keypress time. The keyboard FIFO has no display epoch timestamp, so the guide describes a conservative epoch captured at polling time, not an impossible proof of what the user saw at physical contact. Cross-frame positional confirmation may be refused rather than silently retargeted.
+
+### What warrants a second pair of eyes
+
+- Review action seed/argument mappings for contextual commands and whether future argument-dependent rule precedence requires an explicit Query extension.
+- Review frame publication, partial transfer failure, and stale positional-event behavior together; these are one correctness boundary.
+- Treat all allocation sizes, stack sizes, and latency thresholds as initial limits/targets, not measured results.
+
+### What should be done in the future
+
+- Begin Phase A/B only after review: host harness, identities/errors, compatibility matrix, graph/conditions/resolution tests.
+- Hardware qualification and implementation remain entirely outstanding.
+
+### Code review instructions
+
+- Read guide §§2, 5–9, and 11–13 first for changes, algebra, syntax, lifetimes, and hardware corrections.
+- Reproduce evidence with the three numbered scripts under `scripts/`.
+- Validate document structure and all related-file paths with docmgr doctor; dry-run reMarkable delivery before upload.
+
+### Technical details
+
+The target payload lower bounds at 40 MHz are 2.048 ms per 320×16 RGB565 row and 40.96 ms per full 320×320 payload. They exclude command/setup, byte swapping, rasterization, and scheduling. Proposed caller raster buffer: 10,240 bytes, separate from the driver's existing 32,768-byte internal staging buffer.
